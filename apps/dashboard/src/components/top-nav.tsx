@@ -47,6 +47,18 @@ export function TopNav() {
           }}
         />
 
+        {appId && (
+          <>
+            <span className="text-zinc-300 dark:text-zinc-700">/</span>
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              Apps
+            </Link>
+          </>
+        )}
+
         {appId && appName && (
           <>
             <span className="text-zinc-300 dark:text-zinc-700">/</span>
