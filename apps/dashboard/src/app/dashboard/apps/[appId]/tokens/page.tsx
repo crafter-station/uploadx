@@ -1,6 +1,7 @@
 "use client";
 
-import { CopyIcon, EyeIcon, EyeOffIcon, MoreHorizontalIcon, PlusIcon } from "@/components/icons";
+import { ConfirmModal } from "@/components/confirm-modal";
+import { CopyIcon, EyeIcon, EyeOffIcon, PlusIcon, TrashIcon } from "@/components/icons";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -41,9 +42,12 @@ export default function TokensPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTokenName, setNewTokenName] = useState("");
   const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState(false);
   const [creating, setCreating] = useState(false);
   const [revealedTokens, setRevealedTokens] = useState<Set<string>>(new Set());
   const [copiedEnv, setCopiedEnv] = useState(false);
+  const [copiedPrefix, setCopiedPrefix] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
   const fetchTokens = useCallback(async () => {
     setLoading(true);
@@ -71,18 +75,20 @@ export default function TokensPage() {
       const data = await res.json();
       setCreatedToken(data.token);
       setNewTokenName("");
+      setShowCreate(false);
       fetchTokens();
     }
     setCreating(false);
   };
 
-  const handleRevoke = async (tokenId: string) => {
-    if (!confirm("Revoke this token? This cannot be undone.")) return;
+  const confirmRevoke = async () => {
+    if (!revokeTarget) return;
     const res = await fetch("/api/tokens", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tokenId }),
+      body: JSON.stringify({ tokenId: revokeTarget }),
     });
+    setRevokeTarget(null);
     if (res.ok) fetchTokens();
   };
 
@@ -97,50 +103,46 @@ export default function TokensPage() {
 
   const copyEnv = () => {
     navigator.clipboard.writeText(
-      `UPLOADX_TOKEN=<your-token-here>\nUPLOADX_URL=${window.location.origin}`,
+      "UPLOADX_TOKEN=<your-token-here>\nUPLOADX_URL=https://uploadx.crafter.run",
     );
     setCopiedEnv(true);
     setTimeout(() => setCopiedEnv(false), 1500);
   };
 
+  const copyCreatedToken = () => {
+    if (!createdToken) return;
+    navigator.clipboard.writeText(createdToken);
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 1500);
+  };
+
+  const copyPrefix = (id: string, prefix: string) => {
+    navigator.clipboard.writeText(prefix);
+    setCopiedPrefix(id);
+    setTimeout(() => setCopiedPrefix(null), 1500);
+  };
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">API Keys</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          View and manage your UploadX API keys.
-        </p>
-      </div>
-
-      {/* Created token banner */}
-      {createdToken && (
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/20">
-          <p className="mb-2 text-sm font-medium text-green-800 dark:text-green-300">
-            Token created! Copy it now — you won&apos;t see it again.
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">API Keys</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            View and manage your UploadX API keys.
           </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-white p-3 font-mono text-sm break-all dark:bg-zinc-900 dark:text-zinc-200">
-              {createdToken}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(createdToken);
-              }}
-              className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700"
-            >
-              <CopyIcon width={14} height={14} />
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCreatedToken(null)}
-            className="mt-2 text-sm text-green-700 hover:text-green-900 dark:text-green-400"
-          >
-            Dismiss
-          </button>
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => {
+            setShowCreate(true);
+            setCreatedToken(null);
+          }}
+          className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+        >
+          <PlusIcon width={16} height={16} />
+          Create key
+        </button>
+      </div>
 
       {/* Quick Copy */}
       <div className="mb-6 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -157,11 +159,7 @@ export default function TokensPage() {
             </div>
             <div>
               <span className="text-blue-400">UPLOADX_URL</span>=
-              <span className="text-green-400">
-                &apos;
-                {typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}
-                &apos;
-              </span>
+              <span className="text-green-400">&apos;https://uploadx.crafter.run&apos;</span>
             </div>
             <button
               type="button"
@@ -230,9 +228,20 @@ export default function TokensPage() {
                       </button>
                       <span className="font-mono text-zinc-500 dark:text-zinc-400">
                         {revealedTokens.has(token.id)
-                          ? `${token.tokenPrefix}...`
-                          : `${token.tokenPrefix.slice(0, 8)}${"•".repeat(16)}...`}
+                          ? token.tokenPrefix
+                          : `${token.tokenPrefix.slice(0, 8)}${"•".repeat(12)}`}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => copyPrefix(token.id, token.tokenPrefix)}
+                        className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                      >
+                        {copiedPrefix === token.id ? (
+                          <span className="text-xs text-green-600 dark:text-green-400">Copied!</span>
+                        ) : (
+                          <CopyIcon width={13} height={13} />
+                        )}
+                      </button>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">
@@ -244,10 +253,10 @@ export default function TokensPage() {
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      onClick={() => handleRevoke(token.id)}
+                      onClick={() => setRevokeTarget(token.id)}
                       className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-600 dark:hover:bg-zinc-800"
                     >
-                      <MoreHorizontalIcon width={16} height={16} />
+                      <TrashIcon width={14} height={14} />
                     </button>
                   </td>
                 </tr>
@@ -257,56 +266,109 @@ export default function TokensPage() {
         </div>
       )}
 
-      {/* Create key */}
-      {showCreate ? (
-        <form onSubmit={handleCreate} className="mt-4 flex items-end gap-3">
-          <div className="flex-1">
-            <label
-              htmlFor="tokenName"
-              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-              Key Name
-            </label>
-            <input
-              id="tokenName"
-              type="text"
-              value={newTokenName}
-              onChange={(e) => setNewTokenName(e.target.value)}
-              required
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              placeholder="e.g. Secret Key"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={creating}
-            className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-          >
-            {creating ? "Creating..." : "Create"}
-          </button>
-          <button
-            type="button"
+      {/* Create key modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/50"
             onClick={() => setShowCreate(false)}
-            className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-700"
-          >
-            Cancel
-          </button>
-        </form>
-      ) : (
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setShowCreate(true);
-              setCreatedToken(null);
-            }}
-            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            <PlusIcon width={14} height={14} />
-            Create key
-          </button>
+          />
+          <div className="relative w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Create API key
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Give your key a name to identify it later.
+            </p>
+            <form onSubmit={handleCreate} className="mt-4 space-y-4">
+              <div>
+                <label
+                  htmlFor="tokenName"
+                  className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Key Name
+                </label>
+                <input
+                  id="tokenName"
+                  type="text"
+                  value={newTokenName}
+                  onChange={(e) => setNewTokenName(e.target.value)}
+                  required
+                  autoFocus
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  placeholder="e.g. Production"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(false)}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                >
+                  {creating ? "Creating..." : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
+
+      {/* Created token copy modal */}
+      {createdToken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" />
+          <div className="relative w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Key created
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Copy your key now. You won&apos;t be able to see it again.
+            </p>
+            <div className="mt-4">
+              <code className="block w-full rounded-lg bg-zinc-950 p-4 font-mono text-sm text-zinc-300 break-all">
+                {createdToken}
+              </code>
+            </div>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCopiedToken(false);
+                  setCreatedToken(null);
+                }}
+                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={copyCreatedToken}
+                className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+              >
+                <CopyIcon width={14} height={14} />
+                {copiedToken ? "Copied!" : "Copy key"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={revokeTarget !== null}
+        title="Revoke API key"
+        description="Are you sure you want to revoke this key? Any applications using it will lose access. This action cannot be undone."
+        confirmLabel="Revoke"
+        variant="danger"
+        onConfirm={confirmRevoke}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </div>
   );
 }

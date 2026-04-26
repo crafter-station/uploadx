@@ -9,6 +9,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from "@/components/icons";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -57,6 +58,7 @@ export default function FilesPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = useCallback(async () => {
@@ -80,13 +82,14 @@ export default function FilesPage() {
     fetchFiles();
   }, [fetchFiles]);
 
-  const handleDelete = async (fileId: string) => {
-    if (!confirm("Delete this file?")) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     const res = await fetch("/api/files", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileId }),
+      body: JSON.stringify({ fileId: deleteTarget }),
     });
+    setDeleteTarget(null);
     if (res.ok) fetchFiles();
   };
 
@@ -248,7 +251,7 @@ export default function FilesPage() {
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      onClick={() => handleDelete(file.id)}
+                      onClick={() => setDeleteTarget(file.id)}
                       className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-600 dark:hover:bg-zinc-800"
                     >
                       <TrashIcon width={14} height={14} />
@@ -318,6 +321,16 @@ export default function FilesPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete file"
+        description="Are you sure you want to delete this file? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
