@@ -1,29 +1,92 @@
-import type { UploadxConfig } from "../shared/types";
+import type { Client } from "minio";
+import {
+  createMinioClient,
+  deleteObject,
+  deleteObjects,
+  ensureBucket,
+  generatePresignedGetUrl,
+  listObjects,
+} from "../minio/client";
+import type { UploadedFile, UploadxConfig } from "../shared/types";
+import { generateObjectKey } from "../shared/utils";
+import { resolveBucket, resolveMinioConfig } from "./config";
 
+/**
+ * Server-side API for managing files in MinIO.
+ *
+ * ```ts
+ * const api = new UploadxAPI();
+ * const files = await api.listFiles();
+ * await api.deleteFiles(["key1", "key2"]);
+ * const url = await api.generateSignedURL("key1", 3600);
+ * ```
+ */
 export class UploadxAPI {
-  private config?: UploadxConfig;
+  private client: Client;
+  private bucket: string;
 
   constructor(config?: UploadxConfig) {
-    this.config = config;
+    const minioConfig = resolveMinioConfig(config?.minio);
+    this.client = createMinioClient(minioConfig);
+    this.bucket = resolveBucket(minioConfig);
   }
 
-  async uploadFiles(_files: File[]) {
-    // TODO: upload files to MinIO
-    throw new Error("Not implemented");
+  /**
+   * Upload files directly to MinIO from the server side.
+   * Returns metadata for each uploaded file.
+   */
+  async uploadFiles(
+    files: Array<{ name: string; data: Buffer | ReadableStream | string; type?: string }>,
+  ): Promise<UploadedFile[]> {
+    await ensureBucket(this.client, this.bucket);
+
+    const results: UploadedFile[] = [];
+    for (const file of files) {
+      const key = generateObjectKey(file.name);
+      const contentType = file.type ?? "application/octet-stream";
+
+      await this.client.putObject(this.bucket, key, file.data as Buffer, undefined, {
+        "Content-Type": contentType,
+      });
+
+      const url = await generatePresignedGetUrl(this.client, this.bucket, key);
+      const stat = await this.client.statObject(this.bucket, key);
+
+      results.push({
+        key,
+        url,
+        name: file.name,
+        size: stat.size,
+        type: contentType,
+      });
+    }
+
+    return results;
   }
 
-  async deleteFiles(_keys: string[]) {
-    // TODO: delete files from MinIO
-    throw new Error("Not implemented");
+  /** Delete one or more files by their object keys. */
+  async deleteFiles(keys: string[]): Promise<void> {
+    if (keys.length === 1 && keys[0]) {
+      await deleteObject(this.client, this.bucket, keys[0]);
+    } else if (keys.length > 1) {
+      await deleteObjects(this.client, this.bucket, keys);
+    }
   }
 
-  async listFiles() {
-    // TODO: list files from MinIO
-    throw new Error("Not implemented");
+  /** List files in the bucket, optionally filtering by prefix. */
+  async listFiles(prefix?: string): Promise<UploadedFile[]> {
+    const objects = await listObjects(this.client, this.bucket, prefix);
+    return objects.map((obj) => ({
+      key: obj.name,
+      url: "", // URLs are generated on-demand via generateSignedURL
+      name: obj.name.split("/").pop() ?? obj.name,
+      size: obj.size,
+      type: "application/octet-stream",
+    }));
   }
 
-  async generateSignedURL(_key: string, _expiresIn?: number) {
-    // TODO: generate presigned URL
-    throw new Error("Not implemented");
+  /** Generate a presigned GET URL for a file. */
+  async generateSignedURL(key: string, expiresIn = 3600): Promise<string> {
+    return generatePresignedGetUrl(this.client, this.bucket, key, expiresIn);
   }
 }
