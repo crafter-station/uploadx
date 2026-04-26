@@ -1,12 +1,13 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.2 AS base
+FROM oven/bun:1.2.23 AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
 COPY package.json bun.lock turbo.json tsconfig.base.json biome.jsonc ./
 COPY apps/dashboard/package.json ./apps/dashboard/
+COPY apps/demo/package.json ./apps/demo/
 COPY packages/uploadx/package.json ./packages/uploadx/
 COPY packages/react/package.json ./packages/react/
 RUN bun install --frozen-lockfile
