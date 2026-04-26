@@ -48,6 +48,7 @@ export default function TokensPage() {
   const [copiedEnv, setCopiedEnv] = useState(false);
   const [copiedPrefix, setCopiedPrefix] = useState<string | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   const fetchTokens = useCallback(async () => {
     setLoading(true);
@@ -83,11 +84,13 @@ export default function TokensPage() {
 
   const confirmRevoke = async () => {
     if (!revokeTarget) return;
+    setRevoking(true);
     const res = await fetch("/api/tokens", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tokenId: revokeTarget }),
     });
+    setRevoking(false);
     setRevokeTarget(null);
     if (res.ok) fetchTokens();
   };
@@ -271,7 +274,7 @@ export default function TokensPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="fixed inset-0 bg-black/50"
-            onClick={() => setShowCreate(false)}
+            onClick={creating ? undefined : () => setShowCreate(false)}
           />
           <div className="relative w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -294,8 +297,9 @@ export default function TokensPage() {
                   value={newTokenName}
                   onChange={(e) => setNewTokenName(e.target.value)}
                   required
+                  disabled={creating}
                   autoFocus
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   placeholder="e.g. Production"
                 />
               </div>
@@ -303,15 +307,22 @@ export default function TokensPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreate(false)}
-                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  disabled={creating}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
                 >
+                  {creating && (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                  )}
                   {creating ? "Creating..." : "Create"}
                 </button>
               </div>
@@ -366,6 +377,7 @@ export default function TokensPage() {
         description="Are you sure you want to revoke this key? Any applications using it will lose access. This action cannot be undone."
         confirmLabel="Revoke"
         variant="danger"
+        loading={revoking}
         onConfirm={confirmRevoke}
         onCancel={() => setRevokeTarget(null)}
       />

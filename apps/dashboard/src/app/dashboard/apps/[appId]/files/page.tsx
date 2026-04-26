@@ -60,7 +60,9 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = useCallback(async () => {
@@ -86,22 +88,26 @@ export default function FilesPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     const res = await fetch("/api/files", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fileId: deleteTarget }),
     });
+    setDeleting(false);
     setDeleteTarget(null);
     if (res.ok) fetchFiles();
   };
 
   const confirmBulkDelete = async () => {
     if (selected.size === 0) return;
+    setBulkDeleting(true);
     const res = await fetch("/api/files", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fileIds: Array.from(selected) }),
     });
+    setBulkDeleting(false);
     setShowBulkDelete(false);
     setSelected(new Set());
     if (res.ok) fetchFiles();
@@ -369,6 +375,7 @@ export default function FilesPage() {
         description="Are you sure you want to delete this file? This action cannot be undone."
         confirmLabel="Delete"
         variant="danger"
+        loading={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -379,6 +386,7 @@ export default function FilesPage() {
         description={`Are you sure you want to delete ${selected.size} selected file${selected.size > 1 ? "s" : ""}? This action cannot be undone.`}
         confirmLabel="Delete all"
         variant="danger"
+        loading={bulkDeleting}
         onConfirm={confirmBulkDelete}
         onCancel={() => setShowBulkDelete(false)}
       />
