@@ -240,7 +240,9 @@ export default function TokensPage() {
                         className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
                       >
                         {copiedPrefix === token.id ? (
-                          <span className="text-xs text-green-600 dark:text-green-400">Copied!</span>
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            Copied!
+                          </span>
                         ) : (
                           <CopyIcon width={13} height={13} />
                         )}
@@ -272,6 +274,7 @@ export default function TokensPage() {
       {/* Create key modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handled separately */}
           <div
             className="fixed inset-0 bg-black/50"
             onClick={creating ? undefined : () => setShowCreate(false)}
@@ -298,6 +301,7 @@ export default function TokensPage() {
                   onChange={(e) => setNewTokenName(e.target.value)}
                   required
                   disabled={creating}
+                  // biome-ignore lint/a11y/noAutofocus: Modal input should auto-focus
                   autoFocus
                   className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   placeholder="e.g. Production"
@@ -319,8 +323,19 @@ export default function TokensPage() {
                 >
                   {creating && (
                     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
                     </svg>
                   )}
                   {creating ? "Creating..." : "Create"}
@@ -336,9 +351,7 @@ export default function TokensPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" />
           <div className="relative w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Key created
-            </h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Key created</h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               Copy your key now. You won&apos;t be able to see it again.
             </p>

@@ -16,11 +16,7 @@ interface ConfirmModalProps {
 
 function Spinner() {
   return (
-    <svg
-      className="h-4 w-4 animate-spin"
-      viewBox="0 0 24 24"
-      fill="none"
-    >
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
@@ -62,6 +58,7 @@ export function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handled via useEffect */}
       <div className="fixed inset-0 bg-black/50" onClick={loading ? undefined : onCancel} />
       <div className="relative w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>

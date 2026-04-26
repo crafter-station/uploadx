@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmModal } from "@/components/confirm-modal";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -10,7 +11,6 @@ import {
   TrashIcon,
   UploadIcon,
 } from "@/components/icons";
-import { ConfirmModal } from "@/components/confirm-modal";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -176,13 +176,7 @@ export default function FilesPage() {
           <UploadIcon width={16} height={16} />
           {uploading ? "Uploading..." : "Upload"}
         </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          onChange={handleUpload}
-          className="hidden"
-        />
+        <input ref={fileInputRef} type="file" multiple onChange={handleUpload} className="hidden" />
       </div>
 
       {/* Toolbar */}

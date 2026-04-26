@@ -112,13 +112,21 @@ export default async function AppOverviewPage({ params }: { params: Promise<{ ap
         {/* Usage bar */}
         <div className="mt-4">
           <div className="h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-red-500"
-              style={{ width: `${Math.min(100, (totalSize / (2 * 1024 * 1024 * 1024)) * 100)}%` }}
-            />
+            {app.storageLimit ? (
+              <div
+                className="h-full rounded-full bg-red-500"
+                style={{ width: `${Math.min(100, (totalSize / app.storageLimit) * 100)}%` }}
+              />
+            ) : (
+              <div
+                className="h-full rounded-full bg-red-500"
+                style={{ width: totalSize > 0 ? "2%" : "0%" }}
+              />
+            )}
           </div>
           <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
-            {formatSize(totalSize)} used &middot; Self-hosted (unlimited)
+            {formatSize(totalSize)} used &middot;{" "}
+            {app.storageLimit ? `${formatSize(app.storageLimit)} limit` : "Unlimited"}
           </p>
         </div>
       </div>

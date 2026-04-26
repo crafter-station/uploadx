@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { bigint, integer, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,6 +14,8 @@ export const apps = pgTable("apps", {
     .references(() => teams.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   bucketName: varchar("bucket_name", { length: 255 }).notNull().unique(),
+  /** Storage limit in bytes. null = unlimited. */
+  storageLimit: bigint("storage_limit", { mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   if (!team) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
   const body = await request.json();
-  const { name } = body as { name: string };
+  const { name, storageLimit } = body as { name: string; storageLimit?: number | null };
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -44,7 +44,12 @@ export async function POST(request: Request) {
   // Create DB record
   const [app] = await db
     .insert(apps)
-    .values({ teamId: team.id, name: name.trim(), bucketName })
+    .values({
+      teamId: team.id,
+      name: name.trim(),
+      bucketName,
+      storageLimit: storageLimit ?? null,
+    })
     .returning();
 
   return NextResponse.json(app, { status: 201 });
@@ -52,17 +57,21 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const body = await request.json();
-  const { appId, name } = body as { appId: string; name: string };
+  const { appId, name, storageLimit } = body as {
+    appId: string;
+    name?: string;
+    storageLimit?: number | null;
+  };
 
-  if (!appId || !name?.trim()) {
-    return NextResponse.json({ error: "appId and name are required" }, { status: 400 });
+  if (!appId) {
+    return NextResponse.json({ error: "appId is required" }, { status: 400 });
   }
 
-  const [updated] = await db
-    .update(apps)
-    .set({ name: name.trim(), updatedAt: new Date() })
-    .where(eq(apps.id, appId))
-    .returning();
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (name?.trim()) updates.name = name.trim();
+  if (storageLimit !== undefined) updates.storageLimit = storageLimit;
+
+  const [updated] = await db.update(apps).set(updates).where(eq(apps.id, appId)).returning();
 
   return NextResponse.json(updated);
 }

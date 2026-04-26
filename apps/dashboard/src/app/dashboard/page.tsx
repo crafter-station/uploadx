@@ -95,8 +95,8 @@ export default async function DashboardPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {appList.map((app) => {
             const stats = storageMap[app.id] ?? { fileCount: 0, totalSize: 0 };
-            const quota = 2 * 1024 * 1024 * 1024;
-            const pct = quota > 0 ? ((stats.totalSize / quota) * 100).toFixed(1) : "0";
+            const quota = app.storageLimit;
+            const pct = quota ? ((stats.totalSize / quota) * 100).toFixed(1) : null;
 
             return (
               <Link
@@ -119,7 +119,14 @@ export default async function DashboardPage() {
                   </p>
                   <p className="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     <span className="font-bold">{formatSize(stats.totalSize)}</span>
-                    <span className="text-zinc-400"> / 2GB ({pct}%)</span>
+                    {quota ? (
+                      <span className="text-zinc-400">
+                        {" "}
+                        / {formatSize(quota)} ({pct}%)
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400"> / Unlimited</span>
+                    )}
                   </p>
                   <div className="mt-3 flex gap-2">
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
