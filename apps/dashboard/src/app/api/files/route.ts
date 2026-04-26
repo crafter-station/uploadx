@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, eq, like } from "drizzle-orm";
-import { fileMetadata } from "uploadx/db";
+import { apiTokens, apps, fileMetadata } from "uploadx/db";
+import { hashToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMinioClient } from "@/lib/minio";
 
@@ -26,6 +27,47 @@ export async function GET(request: Request) {
   return NextResponse.json({ files });
 }
 
+/**
+ * POST /api/files — Register uploaded files (called by SDK after upload completion).
+ * Authenticates via UPLOADX_TOKEN in the request body.
+ */
+export async function POST(request: Request) {
+  const body = (await request.json()) as {
+    token: string;
+    files: Array<{ key: string; name: string; size: number; type: string }>;
+  };
+
+  if (!body.token || !body.files?.length) {
+    return NextResponse.json({ error: "token and files required" }, { status: 400 });
+  }
+
+  // Validate token
+  const tokenHash = await hashToken(body.token);
+  const record = await db.query.apiTokens.findFirst({
+    where: eq(apiTokens.tokenHash, tokenHash),
+  });
+
+  if (!record) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
+
+  // Insert file metadata records
+  const inserted = await db
+    .insert(fileMetadata)
+    .values(
+      body.files.map((f) => ({
+        appId: record.appId,
+        key: f.key,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      })),
+    )
+    .returning();
+
+  return NextResponse.json({ files: inserted });
+}
+
 export async function DELETE(request: Request) {
   const body = await request.json();
   const { fileId } = body as { fileId: string };
@@ -44,7 +86,6 @@ export async function DELETE(request: Request) {
   }
 
   // Get the app to find bucket name
-  const { apps } = await import("uploadx/db");
   const app = await db.query.apps.findFirst({
     where: eq(apps.id, file.appId),
   });

@@ -228,7 +228,30 @@ async function handleComplete(
     serverDataResults.push(serverData);
   }
 
-  // 5. Clean up session
+  // 5. Register files with dashboard in hosted mode
+  const uploadxToken = process.env.UPLOADX_TOKEN;
+  const uploadxUrl = process.env.UPLOADX_URL;
+  if (uploadxToken && uploadxUrl) {
+    try {
+      await fetch(`${uploadxUrl}/api/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: uploadxToken,
+          files: uploadedFiles.map((f) => ({
+            key: f.key,
+            name: f.name,
+            size: f.size,
+            type: f.type,
+          })),
+        }),
+      });
+    } catch {
+      // Non-critical: don't fail the upload if dashboard registration fails
+    }
+  }
+
+  // 6. Clean up session
   uploadSessions.delete(sessionId);
 
   const response: UploadCompleteResponse = {
