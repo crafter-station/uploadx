@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+
+.env
+.env*.local
+
+*.log
+*.tsbuildinfo
+
+.DS_Store
+Thumbs.db
+
+docker-compose.override.yml

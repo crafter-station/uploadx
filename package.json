@@ -1,0 +1,27 @@
+{
+  "name": "uploadx",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An open-source UploadThing clone using MinIO for storage",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "minio": "docker compose up -d"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "tsup": "^8.3.5",
+    "turbo": "^2.8.0",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "bun@1.2.0"
+}
