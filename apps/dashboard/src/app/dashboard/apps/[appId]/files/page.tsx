@@ -60,6 +60,7 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = useCallback(async () => {
@@ -91,6 +92,18 @@ export default function FilesPage() {
       body: JSON.stringify({ fileId: deleteTarget }),
     });
     setDeleteTarget(null);
+    if (res.ok) fetchFiles();
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selected.size === 0) return;
+    const res = await fetch("/api/files", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileIds: Array.from(selected) }),
+    });
+    setShowBulkDelete(false);
+    setSelected(new Set());
     if (res.ok) fetchFiles();
   };
 
@@ -185,6 +198,16 @@ export default function FilesPage() {
             className="w-full rounded-lg border border-zinc-300 py-2 pl-9 pr-3 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
         </div>
+        {selected.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowBulkDelete(true)}
+            className="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+          >
+            <TrashIcon width={14} height={14} />
+            Delete {selected.size} file{selected.size > 1 ? "s" : ""}
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -348,6 +371,16 @@ export default function FilesPage() {
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmModal
+        open={showBulkDelete}
+        title={`Delete ${selected.size} file${selected.size > 1 ? "s" : ""}`}
+        description={`Are you sure you want to delete ${selected.size} selected file${selected.size > 1 ? "s" : ""}? This action cannot be undone.`}
+        confirmLabel="Delete all"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowBulkDelete(false)}
       />
     </div>
   );

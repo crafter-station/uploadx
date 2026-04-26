@@ -85,33 +85,34 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = await request.json();
-  const { fileId } = body as { fileId: string };
+  const { fileId, fileIds } = body as { fileId?: string; fileIds?: string[] };
 
-  if (!fileId) {
-    return NextResponse.json({ error: "fileId required" }, { status: 400 });
+  const ids = fileIds ?? (fileId ? [fileId] : []);
+  if (ids.length === 0) {
+    return NextResponse.json({ error: "fileId or fileIds required" }, { status: 400 });
   }
 
-  const file = await db.query.fileMetadata.findFirst({
-    where: eq(fileMetadata.id, fileId),
-  });
+  for (const id of ids) {
+    const file = await db.query.fileMetadata.findFirst({
+      where: eq(fileMetadata.id, id),
+    });
+    if (!file) continue;
 
-  if (!file) {
-    return NextResponse.json({ error: "File not found" }, { status: 404 });
-  }
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, file.appId),
+    });
 
-  const app = await db.query.apps.findFirst({
-    where: eq(apps.id, file.appId),
-  });
-
-  if (app) {
-    try {
-      const client = getMinioClient();
-      await client.removeObject(app.bucketName, file.key);
-    } catch {
-      // Continue even if MinIO delete fails
+    if (app) {
+      try {
+        const client = getMinioClient();
+        await client.removeObject(app.bucketName, file.key);
+      } catch {
+        // Continue even if MinIO delete fails
+      }
     }
+
+    await db.delete(fileMetadata).where(eq(fileMetadata.id, id));
   }
 
-  await db.delete(fileMetadata).where(eq(fileMetadata.id, fileId));
   return NextResponse.json({ success: true });
 }
