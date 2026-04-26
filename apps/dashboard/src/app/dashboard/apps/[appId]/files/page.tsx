@@ -10,7 +10,7 @@ import {
   UploadIcon,
 } from "@/components/icons";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface FileItem {
   id: string;
@@ -55,7 +55,9 @@ export default function FilesPage() {
   });
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -106,6 +108,24 @@ export default function FilesPage() {
     setPagination((prev) => ({ ...prev, page: p }));
   };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("appId", appId);
+    for (const file of Array.from(selectedFiles)) {
+      formData.append("files", file);
+    }
+    const res = await fetch("/api/files/upload", { method: "POST", body: formData });
+    if (res.ok) {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      fetchFiles();
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div>
       {/* Header */}
@@ -118,12 +138,20 @@ export default function FilesPage() {
         </div>
         <button
           type="button"
-          disabled
-          className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white opacity-50 cursor-not-allowed"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
         >
           <UploadIcon width={16} height={16} />
-          Upload
+          {uploading ? "Uploading..." : "Upload"}
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleUpload}
+          className="hidden"
+        />
       </div>
 
       {/* Toolbar */}
