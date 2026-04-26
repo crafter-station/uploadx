@@ -10,7 +10,7 @@ COPY apps/dashboard/package.json ./apps/dashboard/
 COPY apps/demo/package.json ./apps/demo/
 COPY packages/uploadx/package.json ./packages/uploadx/
 COPY packages/react/package.json ./packages/react/
-RUN bun install --frozen-lockfile
+RUN bun install
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
