@@ -93,13 +93,18 @@ export class UploadxAPI {
   /** List files in the bucket, optionally filtering by prefix. */
   async listFiles(prefix?: string): Promise<UploadedFile[]> {
     const objects = await listObjects(this.client, this.bucket, prefix);
-    return objects.map((obj) => ({
-      key: obj.name,
-      url: "", // URLs are generated on-demand via generateSignedURL
-      name: obj.name.split("/").pop() ?? obj.name,
-      size: obj.size,
-      type: "application/octet-stream",
-    }));
+    const results: UploadedFile[] = [];
+    for (const obj of objects) {
+      const url = await generatePresignedGetUrl(this.client, this.bucket, obj.name);
+      results.push({
+        key: obj.name,
+        url,
+        name: obj.name.split("/").pop() ?? obj.name,
+        size: obj.size,
+        type: "application/octet-stream",
+      });
+    }
+    return results;
   }
 
   /** Generate a presigned GET URL for a file. */
