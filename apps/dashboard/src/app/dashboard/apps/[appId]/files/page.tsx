@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
+  DownloadIcon,
   SearchIcon,
   TrashIcon,
   UploadIcon,
@@ -109,6 +110,14 @@ export default function FilesPage() {
 
   const goToPage = (p: number) => {
     setPagination((prev) => ({ ...prev, page: p }));
+  };
+
+  const handleDownload = async (fileId: string) => {
+    const res = await fetch(`/api/files/download?fileId=${fileId}`);
+    if (res.ok) {
+      const { url } = await res.json();
+      window.open(url, "_blank");
+    }
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,13 +258,22 @@ export default function FilesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(file.id)}
-                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-600 dark:hover:bg-zinc-800"
-                    >
-                      <TrashIcon width={14} height={14} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(file.id)}
+                        className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                      >
+                        <DownloadIcon width={14} height={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(file.id)}
+                        className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-600 dark:hover:bg-zinc-800"
+                      >
+                        <TrashIcon width={14} height={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
