@@ -48,28 +48,27 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-lg space-y-10">
+    <div className="max-w-lg space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">Settings</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage your app configuration.</p>
+      </div>
 
+      {/* Rename */}
+      <div className="rounded-lg border border-zinc-200 p-6 dark:border-zinc-800">
+        <h2 className="mb-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">App Name</h2>
         <form onSubmit={handleRename} className="space-y-4">
-          <div>
-            <label htmlFor="appName" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              App Name
-            </label>
-            <input
-              id="appName"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            />
-          </div>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
           <button
             type="submit"
             disabled={saving || name === originalName}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}
           </button>
@@ -77,14 +76,17 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger zone */}
-      <div className="border border-red-200 rounded-lg p-6 dark:border-red-900">
-        <h2 className="text-lg font-semibold text-red-600 mb-2">Danger Zone</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+      <div className="rounded-lg border border-red-200 p-6 dark:border-red-900">
+        <h2 className="mb-2 text-lg font-semibold text-red-600">Danger Zone</h2>
+        <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
           Deleting this app will remove all files and tokens. This cannot be undone.
         </p>
         <div className="space-y-3">
           <div>
-            <label htmlFor="deleteConfirm" className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">
+            <label
+              htmlFor="deleteConfirm"
+              className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400"
+            >
               Type <strong>{originalName}</strong> to confirm
             </label>
             <input
@@ -92,13 +94,14 @@ export default function SettingsPage() {
               type="text"
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
           <button
+            type="button"
             onClick={handleDelete}
             disabled={deleteConfirm !== originalName || deleting}
-            className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
           >
             {deleting ? "Deleting..." : "Delete App"}
           </button>

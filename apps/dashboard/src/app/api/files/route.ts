@@ -1,14 +1,17 @@
-import { NextResponse } from "next/server";
-import { and, eq, like } from "drizzle-orm";
-import { apiTokens, apps, fileMetadata } from "@uploadx-sdk/core/db";
 import { hashToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMinioClient } from "@/lib/minio";
+import { apiTokens, apps, fileMetadata } from "@uploadx-sdk/core/db";
+import { and, asc, count, desc, eq, like } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const appId = searchParams.get("appId");
   const search = searchParams.get("search");
+  const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? 10)));
+  const sortDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
 
   if (!appId) {
     return NextResponse.json({ error: "appId required" }, { status: 400 });
@@ -19,12 +22,26 @@ export async function GET(request: Request) {
     conditions.push(like(fileMetadata.name, `%${search}%`));
   }
 
+  const whereClause = and(...conditions);
+
+  const [{ total }] = await db
+    .select({ total: count(fileMetadata.id) })
+    .from(fileMetadata)
+    .where(whereClause);
+
+  const orderFn = sortDir === "asc" ? asc : desc;
+
   const files = await db.query.fileMetadata.findMany({
-    where: and(...conditions),
-    orderBy: (f, { desc }) => [desc(f.uploadedAt)],
+    where: whereClause,
+    orderBy: (f) => [orderFn(f.uploadedAt)],
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
   });
 
-  return NextResponse.json({ files });
+  return NextResponse.json({
+    files,
+    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+  });
 }
 
 /**
@@ -41,7 +58,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "token and files required" }, { status: 400 });
   }
 
-  // Validate token
   const tokenHash = await hashToken(body.token);
   const record = await db.query.apiTokens.findFirst({
     where: eq(apiTokens.tokenHash, tokenHash),
@@ -51,7 +67,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
-  // Insert file metadata records
   const inserted = await db
     .insert(fileMetadata)
     .values(
@@ -76,7 +91,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "fileId required" }, { status: 400 });
   }
 
-  // Get file metadata for MinIO deletion
   const file = await db.query.fileMetadata.findFirst({
     where: eq(fileMetadata.id, fileId),
   });
@@ -85,13 +99,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 
-  // Get the app to find bucket name
   const app = await db.query.apps.findFirst({
     where: eq(apps.id, file.appId),
   });
 
   if (app) {
-    // Delete from MinIO
     try {
       const client = getMinioClient();
       await client.removeObject(app.bucketName, file.key);
@@ -100,7 +112,6 @@ export async function DELETE(request: Request) {
     }
   }
 
-  // Delete from DB
   await db.delete(fileMetadata).where(eq(fileMetadata.id, fileId));
   return NextResponse.json({ success: true });
 }

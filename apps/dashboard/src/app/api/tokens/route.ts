@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { apiTokens } from "@uploadx-sdk/core/db";
 import { generateApiToken, hashToken } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { apiTokens } from "@uploadx-sdk/core/db";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

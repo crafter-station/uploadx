@@ -33,34 +33,42 @@ export default function NewAppPage() {
 
   return (
     <div className="max-w-md">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">Create New App</h1>
+      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create New App</h1>
+      <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
+        Set up a new app with its own storage bucket.
+      </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            App Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            placeholder="my-app"
-          />
-        </div>
+      <div className="rounded-lg border border-zinc-200 p-6 dark:border-zinc-800">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="name"
+              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            >
+              App Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              placeholder="my-app"
+            />
+          </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading || !name.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Creating..." : "Create App"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading || !name.trim()}
+            className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+          >
+            {loading ? "Creating..." : "Create App"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

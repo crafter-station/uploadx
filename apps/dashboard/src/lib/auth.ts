@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
 import { teams } from "@uploadx-sdk/core/db";
+import { eq } from "drizzle-orm";
 import { db } from "./db";
 
 /**

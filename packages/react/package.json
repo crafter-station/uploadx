@@ -18,7 +18,15 @@
     "lint": "biome lint .",
     "clean": "rm -rf dist .turbo"
   },
-  "keywords": ["upload", "file-upload", "react", "uploadthing", "upload-button", "upload-dropzone", "hooks"],
+  "keywords": [
+    "upload",
+    "file-upload",
+    "react",
+    "uploadthing",
+    "upload-button",
+    "upload-dropzone",
+    "hooks"
+  ],
   "author": "Ignacio",
   "repository": {
     "type": "git",

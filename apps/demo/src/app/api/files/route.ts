@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { getApi } from "@/lib/uploadx";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const api = await getApi();

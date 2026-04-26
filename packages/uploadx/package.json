@@ -33,7 +33,16 @@
     "lint": "biome lint .",
     "clean": "rm -rf dist .turbo"
   },
-  "keywords": ["upload", "file-upload", "minio", "s3", "presigned-url", "uploadthing", "nextjs", "react"],
+  "keywords": [
+    "upload",
+    "file-upload",
+    "minio",
+    "s3",
+    "presigned-url",
+    "uploadthing",
+    "nextjs",
+    "react"
+  ],
   "author": "Ignacio",
   "repository": {
     "type": "git",

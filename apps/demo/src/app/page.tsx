@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { UploadDropzone } from "@/lib/uploadx-components";
+import { useCallback, useEffect, useState } from "react";
 
 interface FileItem {
   key: string;

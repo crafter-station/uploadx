@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 
 // ── CodeBlock with copy button ──────────────────────────────────────────────
 
@@ -16,9 +16,7 @@ function CodeBlock({ code, filename }: { code: string; filename?: string }) {
   return (
     <div className="relative my-4 rounded-lg border border-zinc-800 bg-zinc-950">
       {filename && (
-        <div className="border-b border-zinc-800 px-4 py-2 text-xs text-zinc-400">
-          {filename}
-        </div>
+        <div className="border-b border-zinc-800 px-4 py-2 text-xs text-zinc-400">{filename}</div>
       )}
       <button
         type="button"
@@ -47,12 +45,8 @@ function Section({
 }) {
   return (
     <section id={id} className="scroll-mt-8 pb-10">
-      <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-        {title}
-      </h2>
-      <div className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        {children}
-      </div>
+      <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
+      <div className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{children}</div>
     </section>
   );
 }
@@ -103,9 +97,7 @@ export default function DocsPage() {
 
         {/* ── 1. Installation ──────────────────────────────────────────── */}
         <Section id="installation" title="1. Installation">
-          <p className="mb-2">
-            Install the SDK and React components in your Next.js project:
-          </p>
+          <p className="mb-2">Install the SDK and React components in your Next.js project:</p>
           <CodeBlock code="bun add @uploadx-sdk/core @uploadx-sdk/react" />
           <p>Or with npm / pnpm:</p>
           <CodeBlock code="npm install @uploadx-sdk/core @uploadx-sdk/react" />
@@ -114,9 +106,12 @@ export default function DocsPage() {
         {/* ── 2. Environment ───────────────────────────────────────────── */}
         <Section id="env" title="2. Environment Setup">
           <p className="mb-2">
-            Create a <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">.env.local</code> file
-            with your API token and the dashboard URL. You can generate a token
-            from the <strong>Tokens</strong> page of your app.
+            Create a{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              .env.local
+            </code>{" "}
+            file with your API token and the dashboard URL. You can generate a token from the{" "}
+            <strong>Tokens</strong> page of your app.
           </p>
           <CodeBlock
             filename=".env.local"
@@ -124,17 +119,16 @@ export default function DocsPage() {
 UPLOADX_URL=http://localhost:3000`}
           />
           <p>
-            That&apos;s it — no MinIO or storage configuration needed. The SDK
-            automatically fetches connection details from the dashboard.
+            That&apos;s it — no MinIO or storage configuration needed. The SDK automatically fetches
+            connection details from the dashboard.
           </p>
         </Section>
 
         {/* ── 3. File Router ───────────────────────────────────────────── */}
         <Section id="file-router" title="3. Define a File Router">
           <p className="mb-2">
-            A <strong>File Router</strong> declares what files your app accepts.
-            Each route specifies file types, size limits, and what happens after
-            upload.
+            A <strong>File Router</strong> declares what files your app accepts. Each route
+            specifies file types, size limits, and what happens after upload.
           </p>
           <CodeBlock
             filename="src/lib/uploadx.ts"
@@ -167,24 +161,50 @@ export type AppFileRouter = typeof fileRouter;`}
           />
           <p className="mt-3">
             <strong>File types:</strong>{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">image</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">video</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">audio</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">pdf</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">text</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">blob</code> (any).
-            Size limits:{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">&quot;4MB&quot;</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">&quot;512KB&quot;</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">&quot;1GB&quot;</code>.
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              image
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              video
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              audio
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              pdf
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              text
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              blob
+            </code>{" "}
+            (any). Size limits:{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              &quot;4MB&quot;
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              &quot;512KB&quot;
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              &quot;1GB&quot;
+            </code>
+            .
           </p>
         </Section>
 
         {/* ── 4. Route Handler ─────────────────────────────────────────── */}
         <Section id="route-handler" title="4. Create the Route Handler">
           <p className="mb-2">
-            Expose the file router as a Next.js API route. This handles
-            presigned URL generation and upload completion.
+            Expose the file router as a Next.js API route. This handles presigned URL generation and
+            upload completion.
           </p>
           <CodeBlock
             filename="src/app/api/uploadx/route.ts"
@@ -199,9 +219,7 @@ export const { GET, POST } = createNextRouteHandler({
 
         {/* ── 5. React Components ──────────────────────────────────────── */}
         <Section id="react" title="5. React Components">
-          <p className="mb-2">
-            Generate type-safe upload components bound to your file router:
-          </p>
+          <p className="mb-2">Generate type-safe upload components bound to your file router:</p>
           <CodeBlock
             filename="src/lib/uploadx-components.ts"
             code={`import { generateUploadButton, generateUploadDropzone } from "@uploadx-sdk/react";
@@ -232,17 +250,15 @@ export default function Home() {
 }`}
           />
           <p className="mt-3">
-            <strong>UploadButton</strong> renders a simple button with a hidden
-            file input. <strong>UploadDropzone</strong> renders a drag-and-drop
-            zone with a progress bar.
+            <strong>UploadButton</strong> renders a simple button with a hidden file input.{" "}
+            <strong>UploadDropzone</strong> renders a drag-and-drop zone with a progress bar.
           </p>
         </Section>
 
         {/* ── 6. useUploadX Hook ───────────────────────────────────────── */}
         <Section id="hook" title="6. useUploadX Hook">
           <p className="mb-2">
-            For full control, use the hook directly instead of the pre-built
-            components:
+            For full control, use the hook directly instead of the pre-built components:
           </p>
           <CodeBlock
             code={`"use client";
@@ -274,18 +290,30 @@ export function CustomUploader() {
           />
           <p className="mt-3">
             The hook returns:{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">startUpload</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">isUploading</code>,{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">progress</code> (0-100), and{" "}
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">routeConfig</code> (file type constraints).
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              startUpload
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              isUploading
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              progress
+            </code>{" "}
+            (0-100), and{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              routeConfig
+            </code>{" "}
+            (file type constraints).
           </p>
         </Section>
 
         {/* ── 7. Server API ────────────────────────────────────────────── */}
         <Section id="server-api" title="7. Server-side API">
           <p className="mb-2">
-            Use <strong>UploadxAPI</strong> on the server to list, delete, or
-            generate download URLs for files:
+            Use <strong>UploadxAPI</strong> on the server to list, delete, or generate download URLs
+            for files:
           </p>
           <CodeBlock
             code={`import { UploadxAPI } from "@uploadx-sdk/core/server";
@@ -302,9 +330,7 @@ const url = await api.generateSignedURL("file-key", 3600);
 // Delete files
 await api.deleteFiles(["file-key-1", "file-key-2"]);`}
           />
-          <p className="mt-3">
-            Example: create an API route for file management in your app:
-          </p>
+          <p className="mt-3">Example: create an API route for file management in your app:</p>
           <CodeBlock
             filename="src/app/api/files/route.ts"
             code={`import { NextResponse } from "next/server";

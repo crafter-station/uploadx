@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { apiTokens, apps } from "@uploadx-sdk/core/db";
 import { hashToken } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { apiTokens, apps } from "@uploadx-sdk/core/db";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 /**
  * POST /api/tokens/validate
@@ -30,10 +30,7 @@ export async function POST(request: Request) {
   }
 
   // Update last used timestamp
-  await db
-    .update(apiTokens)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiTokens.id, record.id));
+  await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, record.id));
 
   // Get the associated app for bucket info
   const app = await db.query.apps.findFirst({

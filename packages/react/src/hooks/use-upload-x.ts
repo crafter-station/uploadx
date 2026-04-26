@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { type ClientUploadedFileData, uploadFiles } from "@uploadx-sdk/core/client";
 import type { FileRouteInput, FileRouter } from "@uploadx-sdk/core/server";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseUploadThingProps<TServerData = unknown> {
   onClientUploadComplete?: (res: ClientUploadedFileData<TServerData>[]) => void;

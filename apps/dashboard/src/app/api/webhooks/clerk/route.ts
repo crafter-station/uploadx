@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { teams } from "@uploadx-sdk/core/db";
 import { db } from "@/lib/db";
+import { teams } from "@uploadx-sdk/core/db";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 /**
  * POST /api/webhooks/clerk

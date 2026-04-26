@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { apps } from "@uploadx-sdk/core/db";
 import { getTeamForOrg } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ensureAppBucket } from "@/lib/minio";
+import { apps } from "@uploadx-sdk/core/db";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

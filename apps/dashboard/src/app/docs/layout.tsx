@@ -10,10 +10,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             upload<span className="text-red-500">X</span>
           </Link>
           <div className="flex items-center gap-5">
-            <Link
-              href="/docs"
-              className="text-sm font-medium text-zinc-900 dark:text-white"
-            >
+            <Link href="/docs" className="text-sm font-medium text-zinc-900 dark:text-white">
               Docs
             </Link>
             <Link

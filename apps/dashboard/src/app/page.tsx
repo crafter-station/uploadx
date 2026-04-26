@@ -32,10 +32,7 @@ export default function LandingPage() {
             upload<span className="text-red-500">X</span>
           </Link>
           <div className="flex items-center gap-6">
-            <Link
-              href="/docs"
-              className="text-sm text-zinc-400 transition hover:text-white"
-            >
+            <Link href="/docs" className="text-sm text-zinc-400 transition hover:text-white">
               Documentation
             </Link>
             <Link
@@ -54,13 +51,11 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-24 lg:pt-32">
           <div className="max-w-2xl">
             <h1 className="text-5xl font-bold leading-tight tracking-tight lg:text-6xl">
-              Better file uploads{" "}
-              <span className="text-red-500">for developers</span>
+              Better file uploads <span className="text-red-500">for developers</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-zinc-400">
-              Developers deserve better than S3. That&apos;s why we made
-              UploadX, the easier (and safer) alternative. From the button to
-              the server, we&apos;ve got you covered.
+              Developers deserve better than S3. That&apos;s why we made UploadX, the easier (and
+              safer) alternative. From the button to the server, we&apos;ve got you covered.
             </p>
             <div className="mt-8 flex items-center gap-4">
               <Link
@@ -83,15 +78,13 @@ export default function LandingPage() {
       {/* Features */}
       <section className="border-t border-zinc-800/50 bg-zinc-950">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
-          <p className="font-mono text-sm tracking-widest text-red-500">
-            Your Auth. Our Storage.
-          </p>
+          <p className="font-mono text-sm tracking-widest text-red-500">Your Auth. Our Storage.</p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight lg:text-4xl">
             The right balance of security and simplicity.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-zinc-400">
-            Authentication happens on your server, the upload happens on ours.
-            Type-safe from client to server with full progress tracking.
+            Authentication happens on your server, the upload happens on ours. Type-safe from client
+            to server with full progress tracking.
           </p>
 
           {/* Feature grid */}
@@ -100,24 +93,24 @@ export default function LandingPage() {
               <div className="mb-3 text-2xl">&#9889;</div>
               <h3 className="font-semibold">Presigned Uploads</h3>
               <p className="mt-2 text-sm text-zinc-400">
-                Files go directly from the browser to storage via presigned URLs.
-                No server bottleneck.
+                Files go directly from the browser to storage via presigned URLs. No server
+                bottleneck.
               </p>
             </div>
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
               <div className="mb-3 text-2xl">&#128274;</div>
               <h3 className="font-semibold">Type-safe Middleware</h3>
               <p className="mt-2 text-sm text-zinc-400">
-                Run auth and validation on your server before any upload starts.
-                Full TypeScript inference.
+                Run auth and validation on your server before any upload starts. Full TypeScript
+                inference.
               </p>
             </div>
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
               <div className="mb-3 text-2xl">&#9881;&#65039;</div>
               <h3 className="font-semibold">Self-hosted MinIO</h3>
               <p className="mt-2 text-sm text-zinc-400">
-                Your data stays on your infrastructure. S3-compatible storage
-                you control completely.
+                Your data stays on your infrastructure. S3-compatible storage you control
+                completely.
               </p>
             </div>
           </div>
@@ -167,9 +160,7 @@ export default function LandingPage() {
               {"(req);"}
               {"\n\n"}
               {"      "}
-              <span className="text-zinc-500">
-                {"// Throw to block uploading"}
-              </span>
+              <span className="text-zinc-500">{"// Throw to block uploading"}</span>
               {"\n"}
               {"      "}
               <span className="text-violet-400">if</span>
@@ -201,9 +192,7 @@ export default function LandingPage() {
               {"  "}
               <span className="text-green-300">onClientUploadComplete</span>
               {"="}
-              <span className="text-zinc-500">
-                {"{(response) => ...}"}
-              </span>
+              <span className="text-zinc-500">{"{(response) => ...}"}</span>
               {"\n"}
               {"  "}
               <span className="text-green-300">onUploadError</span>
