@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { apps } from "uploadx/db";
+import { apps } from "@uploadx-sdk/core/db";
 import { getTeamForOrg } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ensureAppBucket } from "@/lib/minio";

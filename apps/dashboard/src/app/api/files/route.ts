@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { and, eq, like } from "drizzle-orm";
-import { apiTokens, apps, fileMetadata } from "uploadx/db";
+import { apiTokens, apps, fileMetadata } from "@uploadx-sdk/core/db";
 import { hashToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMinioClient } from "@/lib/minio";

@@ -1,4 +1,4 @@
-import type { FileRouteInput } from "uploadx/server";
+import type { FileRouteInput } from "@uploadx-sdk/core/server";
 
 const MIME_MAP: Record<string, string> = {
   image: "image/*",

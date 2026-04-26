@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { apps } from "uploadx/db";
+import { apps } from "@uploadx-sdk/core/db";
 import { db } from "@/lib/db";
 
 export default async function AppOverviewPage({ params }: { params: Promise<{ appId: string }> }) {

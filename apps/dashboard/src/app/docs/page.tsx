@@ -106,9 +106,9 @@ export default function DocsPage() {
           <p className="mb-2">
             Install the SDK and React components in your Next.js project:
           </p>
-          <CodeBlock code="bun add uploadx @uploadx/react" />
+          <CodeBlock code="bun add @uploadx-sdk/core @uploadx-sdk/react" />
           <p>Or with npm / pnpm:</p>
-          <CodeBlock code="npm install uploadx @uploadx/react" />
+          <CodeBlock code="npm install @uploadx-sdk/core @uploadx-sdk/react" />
         </Section>
 
         {/* ── 2. Environment ───────────────────────────────────────────── */}
@@ -138,8 +138,8 @@ UPLOADX_URL=http://localhost:3000`}
           </p>
           <CodeBlock
             filename="src/lib/uploadx.ts"
-            code={`import { createUploadx } from "uploadx/server";
-import type { FileRouter } from "uploadx/server";
+            code={`import { createUploadx } from "@uploadx-sdk/core/server";
+import type { FileRouter } from "@uploadx-sdk/core/server";
 
 const f = createUploadx();
 
@@ -188,7 +188,7 @@ export type AppFileRouter = typeof fileRouter;`}
           </p>
           <CodeBlock
             filename="src/app/api/uploadx/route.ts"
-            code={`import { createNextRouteHandler } from "uploadx/next";
+            code={`import { createNextRouteHandler } from "@uploadx-sdk/core/next";
 import { fileRouter } from "@/lib/uploadx";
 
 export const { GET, POST } = createNextRouteHandler({
@@ -204,7 +204,7 @@ export const { GET, POST } = createNextRouteHandler({
           </p>
           <CodeBlock
             filename="src/lib/uploadx-components.ts"
-            code={`import { generateUploadButton, generateUploadDropzone } from "@uploadx/react";
+            code={`import { generateUploadButton, generateUploadDropzone } from "@uploadx-sdk/react";
 import type { AppFileRouter } from "./uploadx";
 
 export const UploadButton = generateUploadButton<AppFileRouter>();
@@ -247,7 +247,7 @@ export default function Home() {
           <CodeBlock
             code={`"use client";
 
-import { useUploadX } from "@uploadx/react";
+import { useUploadX } from "@uploadx-sdk/react";
 import type { AppFileRouter } from "@/lib/uploadx";
 
 export function CustomUploader() {
@@ -288,7 +288,7 @@ export function CustomUploader() {
             generate download URLs for files:
           </p>
           <CodeBlock
-            code={`import { UploadxAPI } from "uploadx/server";
+            code={`import { UploadxAPI } from "@uploadx-sdk/core/server";
 
 // Create instance (auto-fetches config from dashboard via token)
 const api = await UploadxAPI.create();
@@ -308,7 +308,7 @@ await api.deleteFiles(["file-key-1", "file-key-2"]);`}
           <CodeBlock
             filename="src/app/api/files/route.ts"
             code={`import { NextResponse } from "next/server";
-import { UploadxAPI } from "uploadx/server";
+import { UploadxAPI } from "@uploadx-sdk/core/server";
 
 let api: UploadxAPI | null = null;
 async function getApi() {

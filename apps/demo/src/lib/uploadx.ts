@@ -1,5 +1,5 @@
-import { createUploadx, UploadxAPI } from "uploadx/server";
-import type { FileRouter } from "uploadx/server";
+import { createUploadx, UploadxAPI } from "@uploadx-sdk/core/server";
+import type { FileRouter } from "@uploadx-sdk/core/server";
 
 const f = createUploadx();
 

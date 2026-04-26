@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import type { ClientUploadedFileData } from "uploadx/client";
-import type { FileRouter } from "uploadx/server";
+import type { ClientUploadedFileData } from "@uploadx-sdk/core/client";
+import type { FileRouter } from "@uploadx-sdk/core/server";
 import { useUploadX } from "../hooks/use-upload-x";
 import { deriveAcceptString, deriveMaxFileCount } from "../utils";
 

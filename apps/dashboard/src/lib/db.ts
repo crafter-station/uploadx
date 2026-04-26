@@ -1,4 +1,4 @@
-import { createDb } from "uploadx/db";
+import { createDb } from "@uploadx-sdk/core/db";
 
 const DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://uploadx:uploadx@localhost:5432/uploadx";
 

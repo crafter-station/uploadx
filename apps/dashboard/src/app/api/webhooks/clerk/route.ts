@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { teams } from "uploadx/db";
+import { teams } from "@uploadx-sdk/core/db";
 import { db } from "@/lib/db";
 
 /**

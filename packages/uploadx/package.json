@@ -1,6 +1,6 @@
 {
-  "name": "uploadx",
-  "version": "0.0.1",
+  "name": "@uploadx-sdk/core",
+  "version": "0.1.0",
   "description": "Open-source file upload SDK using MinIO — UploadThing API-compatible",
   "type": "module",
   "exports": {
@@ -33,16 +33,32 @@
     "lint": "biome lint .",
     "clean": "rm -rf dist .turbo"
   },
+  "keywords": ["upload", "file-upload", "minio", "s3", "presigned-url", "uploadthing", "nextjs", "react"],
+  "author": "Ignacio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ignac/uploadx"
+  },
+  "homepage": "https://github.com/Ignac/uploadx#readme",
+  "bugs": {
+    "url": "https://github.com/Ignac/uploadx/issues"
+  },
   "dependencies": {
-    "drizzle-orm": "^0.45.2",
-    "minio": "^8.0.1",
-    "pg": "^8.20.0"
+    "minio": "^8.0.1"
   },
   "peerDependencies": {
-    "next": ">=14.0.0"
+    "next": ">=14.0.0",
+    "drizzle-orm": ">=0.30.0",
+    "pg": ">=8.0.0"
   },
   "peerDependenciesMeta": {
     "next": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "pg": {
       "optional": true
     }
   },
@@ -50,6 +66,8 @@
     "@types/node": "^22.10.1",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.20.0",
     "typescript": "^5.7.2"
   },
   "license": "MIT"

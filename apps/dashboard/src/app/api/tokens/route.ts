@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { apiTokens } from "uploadx/db";
+import { apiTokens } from "@uploadx-sdk/core/db";
 import { generateApiToken, hashToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 

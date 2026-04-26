@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { apps } from "uploadx/db";
+import { apps } from "@uploadx-sdk/core/db";
 import { getTeamForOrg } from "@/lib/auth";
 import { db } from "@/lib/db";
 

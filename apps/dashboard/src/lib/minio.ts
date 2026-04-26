@@ -1,4 +1,4 @@
-import { createMinioClient, ensureBucket } from "uploadx/server";
+import { createMinioClient, ensureBucket } from "@uploadx-sdk/core/server";
 
 export function getMinioClient() {
   return createMinioClient({

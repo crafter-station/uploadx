@@ -1,7 +1,7 @@
 {
-  "name": "@uploadx/react",
-  "version": "0.0.1",
-  "description": "React components and hooks for uploadx",
+  "name": "@uploadx-sdk/react",
+  "version": "0.1.0",
+  "description": "React components and hooks for uploadx — UploadButton, UploadDropzone, useUploadX",
   "type": "module",
   "exports": {
     ".": {
@@ -18,8 +18,19 @@
     "lint": "biome lint .",
     "clean": "rm -rf dist .turbo"
   },
+  "keywords": ["upload", "file-upload", "react", "uploadthing", "upload-button", "upload-dropzone", "hooks"],
+  "author": "Ignacio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ignac/uploadx",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/Ignac/uploadx#readme",
+  "bugs": {
+    "url": "https://github.com/Ignac/uploadx/issues"
+  },
   "dependencies": {
-    "uploadx": "workspace:*"
+    "@uploadx-sdk/core": "^0.1.0"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
