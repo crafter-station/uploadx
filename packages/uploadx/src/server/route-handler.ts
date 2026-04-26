@@ -15,7 +15,7 @@ import type {
   UploadxConfig,
 } from "../shared/types";
 import { generateObjectKey } from "../shared/utils";
-import { resolveBucket, resolveMinioConfig } from "./config";
+import { resolveBucket, resolveMinioConfigAsync } from "./config";
 import { uploadSessions } from "./upload-session";
 import { validateFiles } from "./validation";
 
@@ -126,7 +126,7 @@ async function handleUpload(
   validateFiles(files, route.config);
 
   // 4. Generate presigned PUT URLs
-  const minioConfig = resolveMinioConfig(config?.minio);
+  const minioConfig = await resolveMinioConfigAsync(config?.minio);
   const client = createMinioClient(minioConfig);
   const bucket = resolveBucket(minioConfig);
   await ensureBucket(client, bucket);
@@ -192,7 +192,7 @@ async function handleComplete(
   }
 
   // 3. Verify files exist in MinIO
-  const minioConfig = resolveMinioConfig(config?.minio);
+  const minioConfig = await resolveMinioConfigAsync(config?.minio);
   const client = createMinioClient(minioConfig);
   const bucket = resolveBucket(minioConfig);
 

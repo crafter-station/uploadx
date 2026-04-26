@@ -9,13 +9,18 @@ import {
 } from "../minio/client";
 import type { UploadedFile, UploadxConfig } from "../shared/types";
 import { generateObjectKey } from "../shared/utils";
-import { resolveBucket, resolveMinioConfig } from "./config";
+import { resolveBucket, resolveMinioConfig, resolveMinioConfigAsync } from "./config";
 
 /**
  * Server-side API for managing files in MinIO.
  *
  * ```ts
+ * // Direct mode (MINIO_* env vars set):
  * const api = new UploadxAPI();
+ *
+ * // Hosted mode (UPLOADX_TOKEN + UPLOADX_URL):
+ * const api = await UploadxAPI.create();
+ *
  * const files = await api.listFiles();
  * await api.deleteFiles(["key1", "key2"]);
  * const url = await api.generateSignedURL("key1", 3600);
@@ -29,6 +34,18 @@ export class UploadxAPI {
     const minioConfig = resolveMinioConfig(config?.minio);
     this.client = createMinioClient(minioConfig);
     this.bucket = resolveBucket(minioConfig);
+  }
+
+  /**
+   * Async factory for hosted mode (UPLOADX_TOKEN + UPLOADX_URL).
+   * Fetches MinIO config from the dashboard, then returns a ready-to-use instance.
+   */
+  static async create(config?: UploadxConfig): Promise<UploadxAPI> {
+    const minioConfig = await resolveMinioConfigAsync(config?.minio);
+    const api = Object.create(UploadxAPI.prototype) as UploadxAPI;
+    api.client = createMinioClient(minioConfig);
+    api.bucket = resolveBucket(minioConfig);
+    return api;
   }
 
   /**
