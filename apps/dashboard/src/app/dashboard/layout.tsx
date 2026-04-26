@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             Apps
           </Link>
           <Link
-            href="/dashboard/docs"
+            href="/docs"
             className="block px-3 py-2 rounded-md text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             Docs
