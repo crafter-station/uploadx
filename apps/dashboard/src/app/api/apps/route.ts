@@ -1,6 +1,6 @@
 import { getTeamForOrg } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ensureAppBucket } from "@/lib/minio";
+import { ensureAppBucket, getMinioClient } from "@/lib/minio";
 import { apps } from "@uploadx-sdk/core/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -84,6 +84,32 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "appId is required" }, { status: 400 });
   }
 
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) {
+    return NextResponse.json({ error: "App not found" }, { status: 404 });
+  }
+
+  // Remove all objects from the MinIO bucket, then remove the bucket
+  try {
+    const minio = getMinioClient();
+    const objects = await new Promise<string[]>((resolve, reject) => {
+      const keys: string[] = [];
+      const stream = minio.listObjects(app.bucketName, "", true);
+      stream.on("data", (obj) => {
+        if (obj.name) keys.push(obj.name);
+      });
+      stream.on("end", () => resolve(keys));
+      stream.on("error", reject);
+    });
+    if (objects.length > 0) {
+      await minio.removeObjects(app.bucketName, objects);
+    }
+    await minio.removeBucket(app.bucketName);
+  } catch {
+    // Bucket may not exist if MinIO is unreachable — continue with DB cleanup
+  }
+
+  // Cascade deletes apiTokens + fileMetadata via FK constraints
   await db.delete(apps).where(eq(apps.id, appId));
   return NextResponse.json({ success: true });
 }
