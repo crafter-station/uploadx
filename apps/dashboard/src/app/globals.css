@@ -45,3 +45,16 @@ body {
   border-color: #27272a !important;
   color: #e4e4e7 !important;
 }
+
+/* sugar-high syntax highlighting tokens */
+:root {
+  --sh-class: #4c97f8;
+  --sh-identifier: #d4d4d4;
+  --sh-sign: #8996a3;
+  --sh-property: #e879f9;
+  --sh-entity: #67cdcc;
+  --sh-jsxliterals: #6266d1;
+  --sh-string: #4ade80;
+  --sh-keyword: #f472b6;
+  --sh-comment: #6b7280;
+}

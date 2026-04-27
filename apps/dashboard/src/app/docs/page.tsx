@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { highlight } from "sugar-high";
 
 // ── CodeBlock with copy button ──────────────────────────────────────────────
 
 function CodeBlock({ code, filename }: { code: string; filename?: string }) {
   const [copied, setCopied] = useState(false);
+  const html = useMemo(() => highlight(code), [code]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(code);
@@ -26,7 +28,7 @@ function CodeBlock({ code, filename }: { code: string; filename?: string }) {
         {copied ? "Copied!" : "Copy"}
       </button>
       <pre className="overflow-x-auto p-4 text-sm leading-relaxed text-zinc-300">
-        <code>{code}</code>
+        <code dangerouslySetInnerHTML={{ __html: html }} />
       </pre>
     </div>
   );
