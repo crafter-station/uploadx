@@ -1,3 +1,4 @@
+import { UploadAnimation } from "@/components/upload-animation";
 import Link from "next/link";
 
 function CodeWindow({
@@ -24,9 +25,20 @@ function CodeWindow({
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="relative min-h-screen bg-zinc-950 text-white">
+      {/* Grid background */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-zinc-950" />
+
       {/* Nav */}
-      <nav className="border-b border-zinc-800/50">
+      <nav className="relative border-b border-zinc-800/50">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-xl font-bold tracking-tight">
             upload<span className="text-red-500">X</span>
@@ -48,35 +60,40 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent" />
-        <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-24 lg:pt-32">
-          <div className="max-w-2xl">
-            <h1 className="text-5xl font-bold leading-tight tracking-tight lg:text-6xl">
-              Better file uploads <span className="text-red-500">for developers</span>
-            </h1>
-            <p className="mt-6 text-lg leading-relaxed text-zinc-400">
-              Developers deserve better than S3. That&apos;s why we made UploadX, the easier (and
-              safer) alternative. From the button to the server, we&apos;ve got you covered.
-            </p>
-            <div className="mt-8 flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold transition hover:bg-red-700"
-              >
-                Get Started for Free
-              </Link>
-              <Link
-                href="/docs"
-                className="text-sm font-medium text-zinc-300 transition hover:text-white"
-              >
-                Documentation &rarr;
-              </Link>
+        <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-16 lg:pt-28">
+          <div className="flex flex-col-reverse items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
+            <div className="max-w-2xl flex-1">
+              <h1 className="text-5xl font-bold leading-tight tracking-tight lg:text-6xl">
+                Better file uploads <span className="text-red-500">for developers</span>
+              </h1>
+              <p className="mt-6 text-lg leading-relaxed text-zinc-400">
+                Developers deserve better than S3. That&apos;s why we made UploadX, the easier (and
+                safer) alternative. From the button to the server, we&apos;ve got you covered.
+              </p>
+              <div className="mt-8 flex items-center gap-4">
+                <Link
+                  href="/dashboard"
+                  className="rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold transition hover:bg-red-700"
+                >
+                  Get Started for Free
+                </Link>
+                <Link
+                  href="/docs"
+                  className="text-sm font-medium text-zinc-300 transition hover:text-white"
+                >
+                  Documentation &rarr;
+                </Link>
+              </div>
+            </div>
+            <div className="w-full max-w-sm shrink-0 lg:max-w-md">
+              <UploadAnimation />
             </div>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="border-t border-zinc-800/50 bg-zinc-950">
+      <section className="relative border-t border-zinc-800/50">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <p className="font-mono text-sm tracking-widest text-red-500">Your Auth. Our Storage.</p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight lg:text-4xl">
@@ -118,7 +135,7 @@ export default function LandingPage() {
       </section>
 
       {/* Code Preview */}
-      <section className="border-t border-zinc-800/50">
+      <section className="relative border-t border-zinc-800/50">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <div className="grid gap-6 lg:grid-cols-2">
             <CodeWindow filename="server.ts">
@@ -206,7 +223,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800/50 py-8 text-center text-sm text-zinc-500">
+      <footer className="relative border-t border-zinc-800/50 py-8 text-center text-sm text-zinc-500">
         <div className="mx-auto max-w-6xl px-6">
           UploadX &mdash; Open-source file uploads for modern apps.
         </div>
