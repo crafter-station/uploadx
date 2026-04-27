@@ -1,6 +1,6 @@
 {
   "name": "@uploadx-sdk/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React components and hooks for uploadx — UploadButton, UploadDropzone, useUploadX",
   "type": "module",
   "exports": {
@@ -38,7 +38,7 @@
     "url": "https://github.com/Ignac/uploadx/issues"
   },
   "dependencies": {
-    "@uploadx-sdk/core": "^0.1.0"
+    "@uploadx-sdk/core": "^0.2.0"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
