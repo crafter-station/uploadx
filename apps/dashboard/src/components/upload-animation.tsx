@@ -383,11 +383,7 @@ export function UploadAnimation() {
 
       {/* Cable 1 particles — red (left to right) */}
       <circle r="3.5" fill="#ef4444" filter="url(#neon)">
-        <animateMotion
-          dur="1.8s"
-          repeatCount="indefinite"
-          path="M170,175 L230,205 L300,170"
-        />
+        <animateMotion dur="1.8s" repeatCount="indefinite" path="M170,175 L230,205 L300,170" />
         <animate attributeName="opacity" values="0;1;1;0" dur="1.8s" repeatCount="indefinite" />
       </circle>
       <circle r="3.5" fill="#ef4444" filter="url(#neon)">
@@ -531,7 +527,6 @@ export function UploadAnimation() {
         opacity="0.15"
         filter="url(#neonSoft)"
       />
-
     </svg>
   );
 }

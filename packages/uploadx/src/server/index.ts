@@ -1,6 +1,7 @@
 export { createUploadx } from "./create-uploadx";
 export { createRouteHandler, type RouteHandlerConfig } from "./route-handler";
 export { UploadxAPI } from "./api";
+export { createFileServeHandler } from "./file-serve";
 export type {
   FileRouteInput,
   FileRouter,

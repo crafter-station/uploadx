@@ -82,7 +82,9 @@ export default async function DashboardPage() {
 
       {appList.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 py-16 text-center dark:border-zinc-700">
-          <p className="text-zinc-500 dark:text-zinc-400">No apps yet. Create one to get started.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            No apps yet. Create one to get started.
+          </p>
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

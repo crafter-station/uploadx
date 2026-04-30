@@ -78,6 +78,15 @@ export async function deleteObjects(
   await client.removeObjects(bucket, objectKeys);
 }
 
+/** Get a readable stream for an object. */
+export async function getObject(
+  client: Client,
+  bucket: string,
+  objectKey: string,
+): Promise<import("stream").Readable> {
+  return client.getObject(bucket, objectKey);
+}
+
 /** List objects in a bucket, converting the stream into a Promise<array>. */
 export async function listObjects(
   client: Client,

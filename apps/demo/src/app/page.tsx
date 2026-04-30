@@ -95,6 +95,14 @@ export default function Home() {
                     <td className="px-4 py-3 font-mono text-xs">{file.name}</td>
                     <td className="px-4 py-3 text-gray-500">{formatBytes(file.size)}</td>
                     <td className="px-4 py-3 text-right">
+                      <a
+                        href={`/api/uploadx/f/${file.key}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mr-2 inline-block rounded bg-green-500 px-3 py-1 text-xs font-medium text-white hover:bg-green-600"
+                      >
+                        View
+                      </a>
                       <button
                         type="button"
                         onClick={() => handleDownload(file.key)}

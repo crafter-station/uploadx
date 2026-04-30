@@ -60,6 +60,7 @@ const NAV = [
   { id: "env", label: "Environment" },
   { id: "file-router", label: "File Router" },
   { id: "route-handler", label: "Route Handler" },
+  { id: "file-serving", label: "File Serving" },
   { id: "react", label: "React Components" },
   { id: "hook", label: "useUploadX Hook" },
   { id: "server-api", label: "Server API" },
@@ -219,8 +220,46 @@ export const { GET, POST } = createNextRouteHandler({
           />
         </Section>
 
-        {/* ── 5. React Components ──────────────────────────────────────── */}
-        <Section id="react" title="5. React Components">
+        {/* ── 5. File Serving ──────────────────────────────────────────── */}
+        <Section id="file-serving" title="5. File Serving (Public URLs)">
+          <p className="mb-2">
+            Serve uploaded files through permanent, public URLs — no expiring presigned links. Mount
+            a catch-all route that streams files directly from storage:
+          </p>
+          <CodeBlock
+            filename="src/app/api/uploadx/f/[...key]/route.ts"
+            code={`import { createNextFileServeHandler } from "@uploadx-sdk/core/next";
+
+export const { GET } = createNextFileServeHandler();`}
+          />
+          <p className="mb-2 mt-4">Files are now accessible at stable URLs that never expire:</p>
+          <CodeBlock
+            code={`// Use in <img> tags, links, or anywhere you need a permanent URL
+<img src="/api/uploadx/f/abc123-photo.png" />
+
+// Or build the URL from a file key
+const publicUrl = \`/api/uploadx/f/\${file.key}\`;`}
+          />
+          <p className="mt-3">
+            The handler sets proper{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              Content-Type
+            </code>
+            ,{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              ETag
+            </code>
+            , and{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              Cache-Control
+            </code>{" "}
+            headers automatically. Images display inline, PDFs render in the browser, and other
+            files are served with their original content type.
+          </p>
+        </Section>
+
+        {/* ── 6. React Components ──────────────────────────────────────── */}
+        <Section id="react" title="6. React Components">
           <p className="mb-2">Generate type-safe upload components bound to your file router:</p>
           <CodeBlock
             filename="src/lib/uploadx-components.ts"
@@ -257,8 +296,8 @@ export default function Home() {
           </p>
         </Section>
 
-        {/* ── 6. useUploadX Hook ───────────────────────────────────────── */}
-        <Section id="hook" title="6. useUploadX Hook">
+        {/* ── 7. useUploadX Hook ───────────────────────────────────────── */}
+        <Section id="hook" title="7. useUploadX Hook">
           <p className="mb-2">
             For full control, use the hook directly instead of the pre-built components:
           </p>
@@ -311,8 +350,8 @@ export function CustomUploader() {
           </p>
         </Section>
 
-        {/* ── 7. Server API ────────────────────────────────────────────── */}
-        <Section id="server-api" title="7. Server-side API">
+        {/* ── 8. Server API ────────────────────────────────────────────── */}
+        <Section id="server-api" title="8. Server-side API">
           <p className="mb-2">
             Use <strong>UploadxAPI</strong> on the server to list, delete, or generate download URLs
             for files:
