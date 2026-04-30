@@ -1,6 +1,6 @@
 {
   "name": "@uploadx-sdk/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Open-source file upload SDK using MinIO — UploadThing API-compatible",
   "type": "module",
   "exports": {
