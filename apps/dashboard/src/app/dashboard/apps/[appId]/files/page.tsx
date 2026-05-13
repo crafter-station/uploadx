@@ -58,6 +58,7 @@ export default function FilesPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -143,17 +144,79 @@ export default function FilesPage() {
     const selectedFiles = e.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
     setUploading(true);
-    const formData = new FormData();
-    formData.append("appId", appId);
-    for (const file of Array.from(selectedFiles)) {
-      formData.append("files", file);
+    setUploadProgress(0);
+
+    const fileList = Array.from(selectedFiles);
+    const filesMeta = fileList.map((f) => ({ name: f.name, size: f.size, type: f.type }));
+
+    // Phase 1: get presigned PUT URLs
+    const prepRes = await fetch("/api/files/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appId, files: filesMeta }),
+    });
+
+    if (!prepRes.ok) {
+      setUploading(false);
+      return;
     }
-    const res = await fetch("/api/files/upload", { method: "POST", body: formData });
-    if (res.ok) {
-      setPagination((prev) => ({ ...prev, page: 1 }));
-      fetchFiles();
+
+    const { uploads } = (await prepRes.json()) as {
+      uploads: Array<{
+        key: string;
+        name: string;
+        size: number;
+        type: string;
+        presignedUrl: string;
+      }>;
+    };
+
+    // Phase 2: upload each file directly to MinIO
+    const totalSize = fileList.reduce((sum, f) => sum + f.size, 0);
+    let uploadedSize = 0;
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const target = uploads[i];
+      if (!file || !target) continue;
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", target.presignedUrl);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const progress = ((uploadedSize + ev.loaded) / totalSize) * 100;
+            setUploadProgress(Math.round(progress));
+          }
+        };
+        xhr.onload = () => {
+          uploadedSize += file.size;
+          resolve();
+        };
+        xhr.onerror = () => reject(new Error("Upload failed"));
+        xhr.send(file);
+      });
     }
+
+    // Phase 3: register files in DB
+    const completeFiles = uploads.map((u) => ({
+      key: u.key,
+      name: u.name,
+      size: u.size,
+      type: u.type,
+    }));
+
+    await fetch("/api/files/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appId, action: "complete", files: completeFiles }),
+    });
+
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    fetchFiles();
     setUploading(false);
+    setUploadProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -174,7 +237,7 @@ export default function FilesPage() {
           className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
         >
           <UploadIcon width={16} height={16} />
-          {uploading ? "Uploading..." : "Upload"}
+          {uploading ? `Uploading ${uploadProgress}%` : "Upload"}
         </button>
         <input ref={fileInputRef} type="file" multiple onChange={handleUpload} className="hidden" />
       </div>
