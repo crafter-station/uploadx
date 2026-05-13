@@ -112,31 +112,27 @@ export default function FilesPage() {
     if (processingRef.current) return;
     processingRef.current = true;
 
-    const processNext = async (): Promise<boolean> => {
-      // Get current queue snapshot
-      let queue: UploadItem[] = [];
+    while (true) {
+      // Atomically find next queued item and mark it as uploading
+      let nextItem: UploadItem | null = null;
       setUploadQueue((prev) => {
-        queue = prev;
-        return prev;
+        const queued = prev.find((u) => u.status === "queued");
+        if (!queued) return prev;
+        nextItem = { ...queued };
+        return prev.map((u) => (u.id === queued.id ? { ...u, status: "uploading" as const } : u));
       });
 
-      const nextItem = queue.find((u) => u.status === "queued");
-      if (!nextItem) return false;
-
-      // Phase 1: get presigned URL
-      setUploadQueue((prev) =>
-        prev.map((u) => (u.id === nextItem.id ? { ...u, status: "uploading" as const } : u)),
-      );
+      if (!nextItem) break;
+      const item: UploadItem = nextItem;
 
       try {
+        // Phase 1: get presigned URL
         const prepRes = await fetch("/api/files/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             appId,
-            files: [
-              { name: nextItem.file.name, size: nextItem.file.size, type: nextItem.file.type },
-            ],
+            files: [{ name: item.file.name, size: item.file.size, type: item.file.type }],
           }),
         });
 
@@ -153,18 +149,18 @@ export default function FilesPage() {
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("PUT", target.presignedUrl);
-          xhr.setRequestHeader("Content-Type", nextItem.file.type || "application/octet-stream");
+          xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) {
               const progress = Math.round((ev.loaded / ev.total) * 100);
               setUploadQueue((prev) =>
-                prev.map((u) => (u.id === nextItem.id ? { ...u, progress } : u)),
+                prev.map((u) => (u.id === item.id ? { ...u, progress } : u)),
               );
             }
           };
           xhr.onload = () => resolve();
           xhr.onerror = () => reject(new Error("Upload failed"));
-          xhr.send(nextItem.file);
+          xhr.send(item.file);
         });
 
         // Phase 3: register in DB
@@ -177,9 +173,9 @@ export default function FilesPage() {
             files: [
               {
                 key: target.key,
-                name: nextItem.file.name,
-                size: nextItem.file.size,
-                type: nextItem.file.type || "application/octet-stream",
+                name: item.file.name,
+                size: item.file.size,
+                type: item.file.type || "application/octet-stream",
               },
             ],
           }),
@@ -187,26 +183,17 @@ export default function FilesPage() {
 
         setUploadQueue((prev) =>
           prev.map((u) =>
-            u.id === nextItem.id ? { ...u, status: "complete" as const, progress: 100 } : u,
+            u.id === item.id ? { ...u, status: "complete" as const, progress: 100 } : u,
           ),
         );
       } catch {
         setUploadQueue((prev) =>
-          prev.map((u) => (u.id === nextItem.id ? { ...u, status: "error" as const } : u)),
+          prev.map((u) => (u.id === item.id ? { ...u, status: "error" as const } : u)),
         );
       }
-
-      return true;
-    };
-
-    // Keep processing until no more queued items
-    while (await processNext()) {
-      // continue
     }
 
     processingRef.current = false;
-
-    // Refresh file list after all uploads complete
     fetchFiles();
 
     // Clear completed items after a delay
@@ -215,20 +202,22 @@ export default function FilesPage() {
     }, 2000);
   }, [appId, fetchFiles]);
 
-  const addFiles = useCallback(
-    (newFiles: File[]) => {
-      const items: UploadItem[] = newFiles.map((file) => ({
-        id: `upload-${++uploadIdCounter}`,
-        file,
-        progress: 0,
-        status: "queued" as const,
-      }));
-      setUploadQueue((prev) => [...prev, ...items]);
-      // Defer processQueue to next tick so state is updated
-      setTimeout(() => processQueue(), 0);
-    },
-    [processQueue],
-  );
+  // Trigger processing whenever queued items appear
+  useEffect(() => {
+    if (uploadQueue.some((u) => u.status === "queued") && !processingRef.current) {
+      processQueue();
+    }
+  }, [uploadQueue, processQueue]);
+
+  const addFiles = useCallback((newFiles: File[]) => {
+    const items: UploadItem[] = newFiles.map((file) => ({
+      id: `upload-${++uploadIdCounter}`,
+      file,
+      progress: 0,
+      status: "queued" as const,
+    }));
+    setUploadQueue((prev) => [...prev, ...items]);
+  }, []);
 
   const removeFromQueue = (id: string) => {
     setUploadQueue((prev) => prev.filter((u) => u.id !== id || u.status === "uploading"));
