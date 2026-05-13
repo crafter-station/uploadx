@@ -231,3 +231,20 @@ export function ExternalLinkIcon(p: IconProps) {
     </svg>
   );
 }
+
+export function XIcon(p: IconProps) {
+  return (
+    <svg {...defaults} {...p}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+export function CheckIcon(p: IconProps) {
+  return (
+    <svg {...defaults} {...p}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}

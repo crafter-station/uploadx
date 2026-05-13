@@ -2,14 +2,17 @@
 
 import { ConfirmModal } from "@/components/confirm-modal";
 import {
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
   DownloadIcon,
+  FileTextIcon,
   SearchIcon,
   TrashIcon,
   UploadIcon,
+  XIcon,
 } from "@/components/icons";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,10 +33,20 @@ interface Pagination {
   totalPages: number;
 }
 
+interface UploadItem {
+  id: string;
+  file: File;
+  key?: string;
+  presignedUrl?: string;
+  progress: number;
+  status: "queued" | "uploading" | "complete" | "error";
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)}MB`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 function formatDate(d: string): string {
@@ -46,6 +59,8 @@ function formatDate(d: string): string {
   });
 }
 
+let uploadIdCounter = 0;
+
 export default function FilesPage() {
   const { appId } = useParams<{ appId: string }>();
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -57,14 +72,18 @@ export default function FilesPage() {
   });
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const processingRef = useRef(false);
+  const dragCounterRef = useRef(0);
+
+  const isUploading = uploadQueue.some((u) => u.status === "uploading" || u.status === "queued");
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -86,6 +105,169 @@ export default function FilesPage() {
   useEffect(() => {
     fetchFiles();
   }, [fetchFiles]);
+
+  // ── Upload queue processing ──────────────────────────────────────────────
+
+  const processQueue = useCallback(async () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+
+    const processNext = async (): Promise<boolean> => {
+      // Get current queue snapshot
+      let queue: UploadItem[] = [];
+      setUploadQueue((prev) => {
+        queue = prev;
+        return prev;
+      });
+
+      const nextItem = queue.find((u) => u.status === "queued");
+      if (!nextItem) return false;
+
+      // Phase 1: get presigned URL
+      setUploadQueue((prev) =>
+        prev.map((u) => (u.id === nextItem.id ? { ...u, status: "uploading" as const } : u)),
+      );
+
+      try {
+        const prepRes = await fetch("/api/files/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appId,
+            files: [
+              { name: nextItem.file.name, size: nextItem.file.size, type: nextItem.file.type },
+            ],
+          }),
+        });
+
+        if (!prepRes.ok) throw new Error("Failed to prepare upload");
+
+        const { uploads } = (await prepRes.json()) as {
+          uploads: Array<{ key: string; presignedUrl: string }>;
+        };
+
+        const target = uploads[0];
+        if (!target) throw new Error("No upload target returned");
+
+        // Phase 2: upload to MinIO
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", target.presignedUrl);
+          xhr.setRequestHeader("Content-Type", nextItem.file.type || "application/octet-stream");
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) {
+              const progress = Math.round((ev.loaded / ev.total) * 100);
+              setUploadQueue((prev) =>
+                prev.map((u) => (u.id === nextItem.id ? { ...u, progress } : u)),
+              );
+            }
+          };
+          xhr.onload = () => resolve();
+          xhr.onerror = () => reject(new Error("Upload failed"));
+          xhr.send(nextItem.file);
+        });
+
+        // Phase 3: register in DB
+        await fetch("/api/files/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appId,
+            action: "complete",
+            files: [
+              {
+                key: target.key,
+                name: nextItem.file.name,
+                size: nextItem.file.size,
+                type: nextItem.file.type || "application/octet-stream",
+              },
+            ],
+          }),
+        });
+
+        setUploadQueue((prev) =>
+          prev.map((u) =>
+            u.id === nextItem.id ? { ...u, status: "complete" as const, progress: 100 } : u,
+          ),
+        );
+      } catch {
+        setUploadQueue((prev) =>
+          prev.map((u) => (u.id === nextItem.id ? { ...u, status: "error" as const } : u)),
+        );
+      }
+
+      return true;
+    };
+
+    // Keep processing until no more queued items
+    while (await processNext()) {
+      // continue
+    }
+
+    processingRef.current = false;
+
+    // Refresh file list after all uploads complete
+    fetchFiles();
+
+    // Clear completed items after a delay
+    setTimeout(() => {
+      setUploadQueue((prev) => prev.filter((u) => u.status !== "complete"));
+    }, 2000);
+  }, [appId, fetchFiles]);
+
+  const addFiles = useCallback(
+    (newFiles: File[]) => {
+      const items: UploadItem[] = newFiles.map((file) => ({
+        id: `upload-${++uploadIdCounter}`,
+        file,
+        progress: 0,
+        status: "queued" as const,
+      }));
+      setUploadQueue((prev) => [...prev, ...items]);
+      // Defer processQueue to next tick so state is updated
+      setTimeout(() => processQueue(), 0);
+    },
+    [processQueue],
+  );
+
+  const removeFromQueue = (id: string) => {
+    setUploadQueue((prev) => prev.filter((u) => u.id !== id || u.status === "uploading"));
+  };
+
+  // ── Drag and drop handlers ───────────────────────────────────────────────
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current++;
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) addFiles(droppedFiles);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    addFiles(Array.from(selectedFiles));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // ── Table handlers ───────────────────────────────────────────────────────
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -140,107 +322,122 @@ export default function FilesPage() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles || selectedFiles.length === 0) return;
-    setUploading(true);
-    setUploadProgress(0);
-
-    const fileList = Array.from(selectedFiles);
-    const filesMeta = fileList.map((f) => ({ name: f.name, size: f.size, type: f.type }));
-
-    // Phase 1: get presigned PUT URLs
-    const prepRes = await fetch("/api/files/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appId, files: filesMeta }),
-    });
-
-    if (!prepRes.ok) {
-      setUploading(false);
-      return;
-    }
-
-    const { uploads } = (await prepRes.json()) as {
-      uploads: Array<{
-        key: string;
-        name: string;
-        size: number;
-        type: string;
-        presignedUrl: string;
-      }>;
-    };
-
-    // Phase 2: upload each file directly to MinIO
-    const totalSize = fileList.reduce((sum, f) => sum + f.size, 0);
-    let uploadedSize = 0;
-
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
-      const target = uploads[i];
-      if (!file || !target) continue;
-
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", target.presignedUrl);
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-        xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable) {
-            const progress = ((uploadedSize + ev.loaded) / totalSize) * 100;
-            setUploadProgress(Math.round(progress));
-          }
-        };
-        xhr.onload = () => {
-          uploadedSize += file.size;
-          resolve();
-        };
-        xhr.onerror = () => reject(new Error("Upload failed"));
-        xhr.send(file);
-      });
-    }
-
-    // Phase 3: register files in DB
-    const completeFiles = uploads.map((u) => ({
-      key: u.key,
-      name: u.name,
-      size: u.size,
-      type: u.type,
-    }));
-
-    await fetch("/api/files/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appId, action: "complete", files: completeFiles }),
-    });
-
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchFiles();
-    setUploading(false);
-    setUploadProgress(0);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Files</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            These are all of the files that have been uploaded via your uploader.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled={uploading}
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-        >
-          <UploadIcon width={16} height={16} />
-          {uploading ? `Uploading ${uploadProgress}%` : "Upload"}
-        </button>
-        <input ref={fileInputRef} type="file" multiple onChange={handleUpload} className="hidden" />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Files</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          These are all of the files that have been uploaded via your uploader.
+        </p>
       </div>
+
+      {/* Dropzone */}
+      <button
+        type="button"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`mb-4 flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 transition-colors ${
+          isDragging
+            ? "border-red-400 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+            : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
+        }`}
+      >
+        <UploadIcon
+          width={32}
+          height={32}
+          className={`mb-2 ${isDragging ? "text-red-500" : "text-zinc-400"}`}
+        />
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          {isDragging ? "Drop files here" : "Drag & drop files or click to browse"}
+        </span>
+        <span className="mt-1 text-xs text-zinc-400">Upload files of any size</span>
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        onChange={handleFileInput}
+        className="hidden"
+      />
+
+      {/* Upload queue */}
+      {uploadQueue.length > 0 && (
+        <div className="mb-4 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              {isUploading
+                ? `Uploading ${uploadQueue.filter((u) => u.status === "complete").length} / ${uploadQueue.length}`
+                : `${uploadQueue.length} file${uploadQueue.length > 1 ? "s" : ""} uploaded`}
+            </span>
+            {!isUploading && (
+              <button
+                type="button"
+                onClick={() => setUploadQueue([])}
+                className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {uploadQueue.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+                <FileTextIcon width={16} height={16} className="shrink-0 text-zinc-400" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {item.file.name}
+                    </span>
+                    <span className="ml-2 shrink-0 text-xs text-zinc-400">
+                      {formatSize(item.file.size)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          item.status === "error" ? "bg-red-500" : "bg-red-500"
+                        }`}
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                    <span className="w-8 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+                      {item.progress}%
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {item.status === "complete" && (
+                    <CheckIcon width={16} height={16} className="text-green-500" />
+                  )}
+                  {item.status === "error" && (
+                    <XIcon width={16} height={16} className="text-red-500" />
+                  )}
+                  {item.status === "queued" && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromQueue(item.id);
+                      }}
+                      className="rounded p-0.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    >
+                      <XIcon width={14} height={14} />
+                    </button>
+                  )}
+                  {item.status === "uploading" && (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-red-500" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="mb-4 flex items-center gap-3">
