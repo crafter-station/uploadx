@@ -82,6 +82,7 @@ export default function FilesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processingRef = useRef(false);
   const dragCounterRef = useRef(0);
+  const pendingRef = useRef<{ id: string; file: File }[]>([]);
 
   const isUploading = uploadQueue.some((u) => u.status === "uploading" || u.status === "queued");
 
@@ -112,18 +113,14 @@ export default function FilesPage() {
     if (processingRef.current) return;
     processingRef.current = true;
 
-    while (true) {
-      // Atomically find next queued item and mark it as uploading
-      let nextItem: UploadItem | null = null;
-      setUploadQueue((prev) => {
-        const queued = prev.find((u) => u.status === "queued");
-        if (!queued) return prev;
-        nextItem = { ...queued };
-        return prev.map((u) => (u.id === queued.id ? { ...u, status: "uploading" as const } : u));
-      });
+    while (pendingRef.current.length > 0) {
+      const next = pendingRef.current.shift();
+      if (!next) break;
+      const { id, file } = next;
 
-      if (!nextItem) break;
-      const item: UploadItem = nextItem;
+      setUploadQueue((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, status: "uploading" as const } : u)),
+      );
 
       try {
         // Phase 1: get presigned URL
@@ -132,7 +129,7 @@ export default function FilesPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             appId,
-            files: [{ name: item.file.name, size: item.file.size, type: item.file.type }],
+            files: [{ name: file.name, size: file.size, type: file.type }],
           }),
         });
 
@@ -145,22 +142,20 @@ export default function FilesPage() {
         const target = uploads[0];
         if (!target) throw new Error("No upload target returned");
 
-        // Phase 2: upload to MinIO
+        // Phase 2: upload to MinIO via XHR for progress
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("PUT", target.presignedUrl);
-          xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
+          xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) {
               const progress = Math.round((ev.loaded / ev.total) * 100);
-              setUploadQueue((prev) =>
-                prev.map((u) => (u.id === item.id ? { ...u, progress } : u)),
-              );
+              setUploadQueue((prev) => prev.map((u) => (u.id === id ? { ...u, progress } : u)));
             }
           };
           xhr.onload = () => resolve();
           xhr.onerror = () => reject(new Error("Upload failed"));
-          xhr.send(item.file);
+          xhr.send(file);
         });
 
         // Phase 3: register in DB
@@ -173,22 +168,20 @@ export default function FilesPage() {
             files: [
               {
                 key: target.key,
-                name: item.file.name,
-                size: item.file.size,
-                type: item.file.type || "application/octet-stream",
+                name: file.name,
+                size: file.size,
+                type: file.type || "application/octet-stream",
               },
             ],
           }),
         });
 
         setUploadQueue((prev) =>
-          prev.map((u) =>
-            u.id === item.id ? { ...u, status: "complete" as const, progress: 100 } : u,
-          ),
+          prev.map((u) => (u.id === id ? { ...u, status: "complete" as const, progress: 100 } : u)),
         );
       } catch {
         setUploadQueue((prev) =>
-          prev.map((u) => (u.id === item.id ? { ...u, status: "error" as const } : u)),
+          prev.map((u) => (u.id === id ? { ...u, status: "error" as const } : u)),
         );
       }
     }
@@ -203,8 +196,9 @@ export default function FilesPage() {
   }, [appId, fetchFiles]);
 
   // Trigger processing whenever queued items appear
+  // biome-ignore lint/correctness/useExhaustiveDependencies: uploadQueue triggers re-check of pendingRef
   useEffect(() => {
-    if (uploadQueue.some((u) => u.status === "queued") && !processingRef.current) {
+    if (pendingRef.current.length > 0 && !processingRef.current) {
       processQueue();
     }
   }, [uploadQueue, processQueue]);
@@ -216,10 +210,12 @@ export default function FilesPage() {
       progress: 0,
       status: "queued" as const,
     }));
+    pendingRef.current.push(...items.map((i) => ({ id: i.id, file: i.file })));
     setUploadQueue((prev) => [...prev, ...items]);
   }, []);
 
   const removeFromQueue = (id: string) => {
+    pendingRef.current = pendingRef.current.filter((p) => p.id !== id);
     setUploadQueue((prev) => prev.filter((u) => u.id !== id || u.status === "uploading"));
   };
 
