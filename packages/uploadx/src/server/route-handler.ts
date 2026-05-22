@@ -233,7 +233,7 @@ async function handleComplete(
   const uploadxUrl = process.env.UPLOADX_URL;
   if (uploadxToken && uploadxUrl) {
     try {
-      await fetch(`${uploadxUrl}/api/files`, {
+      const res = await fetch(`${uploadxUrl.replace(/\/$/, "")}/api/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -246,8 +246,14 @@ async function handleComplete(
           })),
         }),
       });
-    } catch {
-      // Non-critical: don't fail the upload if dashboard registration fails
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error(
+          `[uploadx] Failed to register files with dashboard: ${res.status} ${res.statusText} ${text}`,
+        );
+      }
+    } catch (err) {
+      console.error("[uploadx] Failed to register files with dashboard:", err);
     }
   }
 
