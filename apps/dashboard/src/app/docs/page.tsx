@@ -64,6 +64,7 @@ const NAV = [
   { id: "react", label: "React Components" },
   { id: "hook", label: "useUploadX Hook" },
   { id: "server-api", label: "Server API" },
+  { id: "http-api", label: "HTTP API" },
 ];
 
 // ── Full page as Markdown (used by the "Copy page" button) ──────────────────
@@ -298,6 +299,28 @@ export async function DELETE(request: Request) {
   return NextResponse.json({ ok: true });
 }
 \`\`\`
+
+## 9. HTTP API
+
+Everything the SDK does goes through a plain HTTP API you can call yourself — from a backend, a
+script, or any language without an UploadX SDK. Authenticate with an API token as a Bearer header:
+
+\`\`\`bash
+# List files for the app the token belongs to
+curl https://uploadx.crafter.run/api/files \\
+  -H "Authorization: Bearer $UPLOADX_TOKEN"
+
+# Delete files by storage key
+curl -X DELETE https://uploadx.crafter.run/api/files \\
+  -H "Authorization: Bearer $UPLOADX_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"keys":["1712345678901-photo.png"]}'
+\`\`\`
+
+The full reference — every endpoint, schema, and response, with a built-in request playground —
+lives at [/docs/api](https://uploadx.crafter.run/docs/api). The OpenAPI document itself is served
+from [/api/openapi](https://uploadx.crafter.run/api/openapi) if you want to generate a client from
+it.
 `;
 
 // ── Copy the whole page as Markdown ─────────────────────────────────────────
@@ -675,6 +698,63 @@ export async function DELETE(request: Request) {
   return NextResponse.json({ ok: true });
 }`}
           />
+        </Section>
+
+        {/* ── 9. HTTP API ──────────────────────────────────────────────── */}
+        <Section id="http-api" title="9. HTTP API">
+          <p className="mb-2">
+            Everything the SDK does goes through a plain HTTP API you can call yourself — from a
+            backend, a script, or any language without an UploadX SDK. Authenticate with an API
+            token as a Bearer header:
+          </p>
+          <CodeBlock
+            code={`# List files for the app the token belongs to
+curl https://uploadx.crafter.run/api/files \\
+  -H "Authorization: Bearer $UPLOADX_TOKEN"
+
+# Delete files by storage key
+curl -X DELETE https://uploadx.crafter.run/api/files \\
+  -H "Authorization: Bearer $UPLOADX_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"keys":["1712345678901-photo.png"]}'`}
+          />
+          <p className="mb-4 mt-4">
+            The full reference — every endpoint, schema, and response, with a built-in request
+            playground — lives at{" "}
+            <a
+              href="/docs/api"
+              className="font-medium text-zinc-900 underline underline-offset-2 dark:text-zinc-100"
+            >
+              /docs/api
+            </a>
+            . The OpenAPI document itself is served from{" "}
+            <a
+              href="/api/openapi"
+              className="font-medium text-zinc-900 underline underline-offset-2 dark:text-zinc-100"
+            >
+              /api/openapi
+            </a>{" "}
+            if you want to generate a client from it.
+          </p>
+          <a
+            href="/docs/api"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+          >
+            Open the API Reference
+            <svg
+              className="h-3.5 w-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </a>
         </Section>
       </div>
     </div>
