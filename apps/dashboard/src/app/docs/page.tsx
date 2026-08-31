@@ -66,6 +66,282 @@ const NAV = [
   { id: "server-api", label: "Server API" },
 ];
 
+// ── Full page as Markdown (used by the "Copy page" button) ──────────────────
+
+const PAGE_MARKDOWN = `# Getting Started
+
+Integrate file uploads into your Next.js app in minutes.
+
+## 1. Installation
+
+Install the SDK and React components in your Next.js project:
+
+\`\`\`bash
+bun add @uploadx-sdk/core @uploadx-sdk/react
+\`\`\`
+
+Or with npm / pnpm:
+
+\`\`\`bash
+npm install @uploadx-sdk/core @uploadx-sdk/react
+\`\`\`
+
+## 2. Environment Setup
+
+Create a \`.env.local\` file with your API token and the dashboard URL. You can generate a token
+from the **Tokens** page of your app.
+
+\`\`\`bash
+# .env.local
+UPLOADX_TOKEN=upx_live_your_token_here
+UPLOADX_URL=http://localhost:3000
+\`\`\`
+
+That's it — no MinIO or storage configuration needed. The SDK automatically fetches connection
+details from the dashboard.
+
+## 3. Define a File Router
+
+A **File Router** declares what files your app accepts. Each route specifies file types, size
+limits, and what happens after upload.
+
+\`\`\`ts
+// src/lib/uploadx.ts
+import { createUploadx } from "@uploadx-sdk/core/server";
+import type { FileRouter } from "@uploadx-sdk/core/server";
+
+const f = createUploadx();
+
+export const fileRouter = {
+  // Accept up to 5 images, max 4MB each
+  imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 5 } })
+    .middleware(({ req }) => {
+      // Run server-side logic (auth, etc.)
+      // Return metadata accessible in onUploadComplete
+      return { userId: "user_123" };
+    })
+    .onUploadComplete(({ metadata, file }) => {
+      console.log("Upload by", metadata.userId, ":", file.name);
+      return { uploadedBy: metadata.userId };
+    }),
+
+  // Accept any file type up to 16MB
+  fileUploader: f({ blob: { maxFileSize: "16MB" } })
+    .onUploadComplete(({ file }) => {
+      console.log("File uploaded:", file.name, file.size);
+    }),
+} satisfies FileRouter;
+
+export type AppFileRouter = typeof fileRouter;
+\`\`\`
+
+**File types:** \`image\`, \`video\`, \`audio\`, \`pdf\`, \`text\`, \`blob\` (any). Size limits:
+\`"4MB"\`, \`"512KB"\`, \`"1GB"\`.
+
+## 4. Create the Route Handler
+
+Expose the file router as a Next.js API route. This handles presigned URL generation and upload
+completion.
+
+\`\`\`ts
+// src/app/api/uploadx/route.ts
+import { createNextRouteHandler } from "@uploadx-sdk/core/next";
+import { fileRouter } from "@/lib/uploadx";
+
+export const { GET, POST } = createNextRouteHandler({
+  router: fileRouter,
+});
+\`\`\`
+
+## 5. File Serving (Public URLs)
+
+Serve uploaded files through permanent, public URLs — no expiring presigned links. Mount a
+catch-all route that streams files directly from storage:
+
+\`\`\`ts
+// src/app/api/uploadx/f/[...key]/route.ts
+import { createNextFileServeHandler } from "@uploadx-sdk/core/next";
+
+export const { GET } = createNextFileServeHandler();
+\`\`\`
+
+Files are now accessible at stable URLs that never expire:
+
+\`\`\`tsx
+// Use in <img> tags, links, or anywhere you need a permanent URL
+<img src="/api/uploadx/f/abc123-photo.png" />
+
+// Or build the URL from a file key
+const publicUrl = \`/api/uploadx/f/\${file.key}\`;
+\`\`\`
+
+The handler sets proper \`Content-Type\`, \`ETag\`, and \`Cache-Control\` headers automatically.
+Images display inline, PDFs render in the browser, and other files are served with their original
+content type.
+
+## 6. React Components
+
+Generate type-safe upload components bound to your file router:
+
+\`\`\`ts
+// src/lib/uploadx-components.ts
+import { generateUploadButton, generateUploadDropzone } from "@uploadx-sdk/react";
+import type { AppFileRouter } from "./uploadx";
+
+export const UploadButton = generateUploadButton<AppFileRouter>();
+export const UploadDropzone = generateUploadDropzone<AppFileRouter>();
+\`\`\`
+
+Then use them in any client component:
+
+\`\`\`tsx
+// src/app/page.tsx
+"use client";
+
+import { UploadDropzone } from "@/lib/uploadx-components";
+
+export default function Home() {
+  return (
+    <UploadDropzone
+      endpoint="imageUploader"
+      onClientUploadComplete={(files) => {
+        console.log("Uploaded:", files);
+      }}
+      onUploadError={(error) => {
+        console.error("Error:", error);
+      }}
+    />
+  );
+}
+\`\`\`
+
+**UploadButton** renders a simple button with a hidden file input. **UploadDropzone** renders a
+drag-and-drop zone with a progress bar.
+
+## 7. useUploadX Hook
+
+For full control, use the hook directly instead of the pre-built components:
+
+\`\`\`tsx
+"use client";
+
+import { useUploadX } from "@uploadx-sdk/react";
+import type { AppFileRouter } from "@/lib/uploadx";
+
+export function CustomUploader() {
+  const { startUpload, isUploading, progress } = useUploadX<AppFileRouter>({
+    endpoint: "imageUploader",
+    onClientUploadComplete: (files) => {
+      console.log("Done:", files);
+    },
+  });
+
+  return (
+    <div>
+      <input
+        type="file"
+        onChange={async (e) => {
+          const files = Array.from(e.target.files ?? []);
+          await startUpload(files);
+        }}
+      />
+      {isUploading && <p>Uploading... {progress}%</p>}
+    </div>
+  );
+}
+\`\`\`
+
+The hook returns: \`startUpload\`, \`isUploading\`, \`progress\` (0-100), and \`routeConfig\` (file
+type constraints).
+
+## 8. Server-side API
+
+Use **UploadxAPI** on the server to list, delete, or generate download URLs for files:
+
+\`\`\`ts
+import { UploadxAPI } from "@uploadx-sdk/core/server";
+
+// Create instance (auto-fetches config from dashboard via token)
+const api = await UploadxAPI.create();
+
+// List all files in the bucket
+const files = await api.listFiles();
+
+// Generate a signed download URL (valid 1 hour)
+const url = await api.generateSignedURL("file-key", 3600);
+
+// Delete files
+await api.deleteFiles(["file-key-1", "file-key-2"]);
+\`\`\`
+
+Example: create an API route for file management in your app:
+
+\`\`\`ts
+// src/app/api/files/route.ts
+import { NextResponse } from "next/server";
+import { UploadxAPI } from "@uploadx-sdk/core/server";
+
+let api: UploadxAPI | null = null;
+async function getApi() {
+  if (!api) api = await UploadxAPI.create();
+  return api;
+}
+
+export async function GET() {
+  const files = await (await getApi()).listFiles();
+  return NextResponse.json(files);
+}
+
+export async function DELETE(request: Request) {
+  const { keys } = await request.json();
+  await (await getApi()).deleteFiles(keys);
+  return NextResponse.json({ ok: true });
+}
+\`\`\`
+`;
+
+// ── Copy the whole page as Markdown ─────────────────────────────────────────
+
+function CopyPageButton() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(PAGE_MARKDOWN);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title="Copy the entire page as Markdown"
+      className="flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+    >
+      <svg
+        className="h-3.5 w-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {copied ? (
+          <polyline points="20 6 9 17 4 12" />
+        ) : (
+          <>
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </>
+        )}
+      </svg>
+      {copied ? "Copied!" : "Copy page"}
+    </button>
+  );
+}
+
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function DocsPage() {
@@ -91,12 +367,17 @@ export default function DocsPage() {
 
       {/* Content */}
       <div className="min-w-0 max-w-3xl flex-1">
-        <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          Getting Started
-        </h1>
-        <p className="mb-8 text-sm text-zinc-500 dark:text-zinc-400">
-          Integrate file uploads into your Next.js app in minutes.
-        </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+              Getting Started
+            </h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Integrate file uploads into your Next.js app in minutes.
+            </p>
+          </div>
+          <CopyPageButton />
+        </div>
 
         {/* ── 1. Installation ──────────────────────────────────────────── */}
         <Section id="installation" title="1. Installation">
