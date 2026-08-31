@@ -94,7 +94,7 @@ from the **Tokens** page of your app.
 \`\`\`bash
 # .env.local
 UPLOADX_TOKEN=upx_live_your_token_here
-UPLOADX_URL=http://localhost:3000
+UPLOADX_URL=https://uploadx.crafter.run
 \`\`\`
 
 That's it — no MinIO or storage configuration needed. The SDK automatically fetches connection
@@ -400,7 +400,7 @@ export default function DocsPage() {
           <CodeBlock
             filename=".env.local"
             code={`UPLOADX_TOKEN=upx_live_your_token_here
-UPLOADX_URL=http://localhost:3000`}
+UPLOADX_URL=https://uploadx.crafter.run`}
           />
           <p>
             That&apos;s it — no MinIO or storage configuration needed. The SDK automatically fetches
