@@ -23,10 +23,12 @@ export const openApiDocument = {
     description: [
       "HTTP API behind the UploadX dashboard.",
       "",
-      "Two kinds of caller are supported:",
+      "Three kinds of caller are supported:",
       "",
       "- **API tokens** (`upx_live_…`) — used by the SDK and by your own backend. Pass them as",
       "  `Authorization: Bearer <token>`, or in the request body where noted.",
+      "- **CLI OAuth tokens** — obtained by `uploadx login`. The approved organization is",
+      "  carried in the token; `X-Uploadx-Org` overrides it and is membership-checked.",
       "- **Dashboard session** — Clerk cookie auth, used by the dashboard UI itself. Endpoints",
       "  tagged *Dashboard* are only reachable from a signed-in browser session.",
       "",
@@ -42,8 +44,105 @@ export const openApiDocument = {
     { name: "Files", description: "List, register and delete uploaded files." },
     { name: "Uploads", description: "Presigned upload URLs and upload completion." },
     { name: "Apps", description: "Manage apps and their storage buckets." },
+    { name: "CLI", description: "Discovery and identity for the `uploadx` CLI." },
   ],
   paths: {
+    "/api/cli/config": {
+      get: {
+        tags: ["CLI"],
+        summary: "CLI discovery document",
+        description:
+          "Tells the CLI which Clerk instance to run the device authorization flow against, and which OAuth client to identify as. Public by design: a public OAuth client has no secret to protect.",
+        operationId: "getCliConfig",
+        security: [],
+        responses: {
+          200: {
+            description: "Discovery document",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    instanceUrl: { type: "string", format: "uri" },
+                    clerkFapiUrl: {
+                      type: ["string", "null"],
+                      description: "Clerk Frontend API origin, derived from the publishable key.",
+                    },
+                    oauthClientId: {
+                      type: ["string", "null"],
+                      description: "Set from CLERK_CLI_OAUTH_CLIENT_ID.",
+                    },
+                    minCliVersion: {
+                      type: "string",
+                      description: "Oldest CLI version this instance supports.",
+                    },
+                    configured: {
+                      type: "boolean",
+                      description: "False when the instance has no CLI OAuth application set up.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    "/api/cli/me": {
+      get: {
+        tags: ["CLI"],
+        summary: "Identify the caller and list their organizations",
+        description:
+          "Backs `uploadx whoami` and the organization picker during login. Clerk advertises no userinfo endpoint for OAuth tokens, and those tokens carry no organization, so identity comes from here.",
+        operationId: "getCliMe",
+        security: [{ cliOAuthToken: [] }, { dashboardSession: [] }, { bearerToken: [] }],
+        responses: {
+          200: {
+            description: "The authenticated caller",
+            content: {
+              "application/json": {
+                schema: {
+                  oneOf: [
+                    {
+                      type: "object",
+                      title: "User",
+                      properties: {
+                        kind: { type: "string", enum: ["oauth", "session"] },
+                        userId: { type: "string" },
+                        email: { type: ["string", "null"] },
+                        name: { type: ["string", "null"] },
+                        orgs: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              id: { type: "string" },
+                              slug: { type: ["string", "null"] },
+                              name: { type: "string" },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    {
+                      type: "object",
+                      title: "App token",
+                      properties: {
+                        kind: { type: "string", const: "appToken" },
+                        appId: { type: "string", format: "uuid" },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          401: errorResponse("Unauthorized"),
+        },
+      },
+    },
+
     "/api/tokens/validate": {
       post: {
         tags: ["Tokens"],
@@ -586,6 +685,12 @@ export const openApiDocument = {
         scheme: "bearer",
         description: "An UploadX API token, e.g. `Authorization: Bearer upx_live_…`.",
       },
+      cliOAuthToken: {
+        type: "http",
+        scheme: "bearer",
+        description:
+          "A Clerk OAuth access token obtained by `uploadx login`. The organization the user approved travels in the token; send `X-Uploadx-Org` only to act for a different one, and membership is verified when you do.",
+      },
       dashboardSession: {
         type: "apiKey",
         in: "cookie",
@@ -668,6 +773,10 @@ export const openApiDocument = {
         required: ["appId", "files"],
         properties: {
           appId: { type: "string", format: "uuid" },
+          prefix: {
+            type: "string",
+            description: "Optional key prefix inside the bucket. Sanitized server-side.",
+          },
           files: {
             type: "array",
             minItems: 1,

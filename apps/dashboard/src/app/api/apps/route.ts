@@ -1,32 +1,45 @@
-import { getTeamForOrg } from "@/lib/auth";
+import { appForCaller, resolveCaller } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ensureAppBucket, getMinioClient } from "@/lib/minio";
 import { apps } from "@uploadx-sdk/core/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+const denied = (failure: { status: number; message: string }) =>
+  NextResponse.json({ error: failure.message }, { status: failure.status });
+
 export async function GET(request: Request) {
+  const result = await resolveCaller(request);
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
+
+  if (caller.kind === "appToken") {
+    return NextResponse.json({ error: "App tokens cannot list apps" }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const appId = searchParams.get("appId");
 
   if (appId) {
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    const app = await appForCaller(caller, appId);
     if (!app) return NextResponse.json({ error: "App not found" }, { status: 404 });
     return NextResponse.json({ app });
   }
 
-  const team = await getTeamForOrg();
-  if (!team) return NextResponse.json({ error: "No organization" }, { status: 400 });
-
   const appList = await db.query.apps.findMany({
-    where: eq(apps.teamId, team.id),
+    where: eq(apps.teamId, caller.teamId),
   });
   return NextResponse.json({ apps: appList });
 }
 
 export async function POST(request: Request) {
-  const team = await getTeamForOrg();
-  if (!team) return NextResponse.json({ error: "No organization" }, { status: 400 });
+  const result = await resolveCaller(request);
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
+
+  if (caller.kind === "appToken") {
+    return NextResponse.json({ error: "App tokens cannot create apps" }, { status: 403 });
+  }
 
   const body = await request.json();
   const { name, storageLimit } = body as { name: string; storageLimit?: number | null };
@@ -45,7 +58,7 @@ export async function POST(request: Request) {
   const [app] = await db
     .insert(apps)
     .values({
-      teamId: team.id,
+      teamId: caller.teamId,
       name: name.trim(),
       bucketName,
       storageLimit: storageLimit ?? null,
@@ -56,6 +69,10 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const result = await resolveCaller(request);
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
+
   const body = await request.json();
   const { appId, name, storageLimit } = body as {
     appId: string;
@@ -67,6 +84,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "appId is required" }, { status: 400 });
   }
 
+  const app = await appForCaller(caller, appId);
+  if (!app) return NextResponse.json({ error: "App not found" }, { status: 404 });
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (name?.trim()) updates.name = name.trim();
   if (storageLimit !== undefined) updates.storageLimit = storageLimit;
@@ -77,6 +97,14 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const result = await resolveCaller(request);
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
+
+  if (caller.kind === "appToken") {
+    return NextResponse.json({ error: "App tokens cannot delete apps" }, { status: 403 });
+  }
+
   const body = await request.json();
   const { appId } = body as { appId: string };
 
@@ -84,7 +112,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "appId is required" }, { status: 400 });
   }
 
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await appForCaller(caller, appId);
   if (!app) {
     return NextResponse.json({ error: "App not found" }, { status: 404 });
   }

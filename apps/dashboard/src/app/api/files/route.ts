@@ -1,56 +1,51 @@
-import { hashToken } from "@/lib/auth";
+import { type Caller, appForCaller, resolveCaller } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMinioClient } from "@/lib/minio";
-import { apiTokens, apps, fileMetadata } from "@uploadx-sdk/core/db";
+import { fileMetadata } from "@uploadx-sdk/core/db";
 import { and, asc, count, desc, eq, inArray, like } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+const denied = (failure: { status: number; message: string }) =>
+  NextResponse.json({ error: failure.message }, { status: failure.status });
+
 /**
- * Resolve the appId from either Bearer token (SDK use) or appId query param
- * (dashboard UI use). Returns null with an error response if neither works.
+ * The app a files request targets: an app token's own app, or the `appId` a
+ * dashboard/CLI caller named — verified to belong to them.
  */
-async function resolveAppId(
-  request: Request,
-  fallbackAppId: string | null,
-): Promise<{ appId: string } | { error: NextResponse }> {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const tokenHash = await hashToken(token);
-    const record = await db.query.apiTokens.findFirst({
-      where: eq(apiTokens.tokenHash, tokenHash),
-    });
-    if (!record) {
-      return { error: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
-    }
-    return { appId: record.appId };
-  }
-  if (fallbackAppId) return { appId: fallbackAppId };
-  return { error: NextResponse.json({ error: "appId or Bearer token required" }, { status: 400 }) };
+async function targetApp(caller: Caller, appId: string | null) {
+  if (caller.kind === "appToken") return appForCaller(caller, caller.appId);
+  if (!appId) return null;
+  return appForCaller(caller, appId);
 }
 
 export async function GET(request: Request) {
+  const result = await resolveCaller(request);
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
+
   const { searchParams } = new URL(request.url);
+  const app = await targetApp(caller, searchParams.get("appId"));
+  if (!app) {
+    return NextResponse.json({ error: "appId required, or app not found" }, { status: 404 });
+  }
+
   const search = searchParams.get("search");
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? 10)));
   const sortDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
 
-  const resolved = await resolveAppId(request, searchParams.get("appId"));
-  if ("error" in resolved) return resolved.error;
-  const { appId } = resolved;
-
-  const conditions = [eq(fileMetadata.appId, appId)];
+  const conditions = [eq(fileMetadata.appId, app.id)];
   if (search) {
     conditions.push(like(fileMetadata.name, `%${search}%`));
   }
 
   const whereClause = and(...conditions);
 
-  const [{ total }] = await db
+  const [row] = await db
     .select({ total: count(fileMetadata.id) })
     .from(fileMetadata)
     .where(whereClause);
+  const total = row?.total ?? 0;
 
   const orderFn = sortDir === "asc" ? asc : desc;
 
@@ -73,28 +68,28 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   const body = (await request.json()) as {
-    token: string;
+    token?: string;
     files: Array<{ key: string; name: string; size: number; type: string }>;
   };
 
-  if (!body.token || !body.files?.length) {
-    return NextResponse.json({ error: "token and files required" }, { status: 400 });
+  if (!body.files?.length) {
+    return NextResponse.json({ error: "files required" }, { status: 400 });
   }
 
-  const tokenHash = await hashToken(body.token);
-  const record = await db.query.apiTokens.findFirst({
-    where: eq(apiTokens.tokenHash, tokenHash),
-  });
+  const result = await resolveCaller(request, { bodyToken: body.token });
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
 
-  if (!record) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  const app = await targetApp(caller, null);
+  if (!app) {
+    return NextResponse.json({ error: "Only app tokens may register files" }, { status: 403 });
   }
 
   const inserted = await db
     .insert(fileMetadata)
     .values(
       body.files.map((f) => ({
-        appId: record.appId,
+        appId: app.id,
         key: f.key,
         name: f.name,
         size: f.size,
@@ -108,50 +103,45 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = await request.json();
-  const { fileId, fileIds, keys } = body as {
+  const { fileId, fileIds, keys, appId } = body as {
     fileId?: string;
     fileIds?: string[];
     keys?: string[];
+    appId?: string;
   };
 
-  // Token-based delete by key (SDK use)
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    if (!keys?.length) {
-      return NextResponse.json({ error: "keys required" }, { status: 400 });
-    }
-    const token = authHeader.slice(7);
-    const tokenHash = await hashToken(token);
-    const record = await db.query.apiTokens.findFirst({
-      where: eq(apiTokens.tokenHash, tokenHash),
-    });
-    if (!record) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  const result = await resolveCaller(request);
+  if (!result.ok) return denied(result.failure);
+  const { caller } = result;
+
+  const minio = getMinioClient();
+
+  // Delete by storage key — the SDK and CLI path.
+  if (keys?.length) {
+    const app = await targetApp(caller, appId ?? null);
+    if (!app) {
+      return NextResponse.json({ error: "appId required, or app not found" }, { status: 404 });
     }
 
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, record.appId) });
-    if (app) {
-      const client = getMinioClient();
-      for (const key of keys) {
-        try {
-          await client.removeObject(app.bucketName, key);
-        } catch {
-          // Continue even if MinIO delete fails
-        }
+    for (const key of keys) {
+      try {
+        await minio.removeObject(app.bucketName, key);
+      } catch {
+        // Continue even if MinIO delete fails
       }
     }
 
     await db
       .delete(fileMetadata)
-      .where(and(eq(fileMetadata.appId, record.appId), inArray(fileMetadata.key, keys)));
+      .where(and(eq(fileMetadata.appId, app.id), inArray(fileMetadata.key, keys)));
 
     return NextResponse.json({ success: true });
   }
 
-  // Existing dashboard UI delete by fileId
+  // Delete by file id — the dashboard path.
   const ids = fileIds ?? (fileId ? [fileId] : []);
   if (ids.length === 0) {
-    return NextResponse.json({ error: "fileId or fileIds required" }, { status: 400 });
+    return NextResponse.json({ error: "fileId, fileIds or keys required" }, { status: 400 });
   }
 
   for (const id of ids) {
@@ -160,17 +150,13 @@ export async function DELETE(request: Request) {
     });
     if (!file) continue;
 
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, file.appId),
-    });
+    const app = await appForCaller(caller, file.appId);
+    if (!app) continue;
 
-    if (app) {
-      try {
-        const client = getMinioClient();
-        await client.removeObject(app.bucketName, file.key);
-      } catch {
-        // Continue even if MinIO delete fails
-      }
+    try {
+      await minio.removeObject(app.bucketName, file.key);
+    } catch {
+      // Continue even if MinIO delete fails
     }
 
     await db.delete(fileMetadata).where(eq(fileMetadata.id, id));
