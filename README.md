@@ -7,11 +7,13 @@ An open-source [UploadThing](https://docs.uploadthing.com) clone using MinIO for
 ```
 uploadx/
 ├── packages/
-│   ├── uploadx/          # Core SDK (server, client, Next.js adapter)
-│   └── react/            # React components and hooks (@uploadx/react)
+│   ├── uploadx/          # Core SDK (@uploadx-sdk/core)
+│   ├── react/            # React components and hooks (@uploadx-sdk/react)
+│   └── cli/              # Command line interface (@uploadx-sdk/cli)
 ├── apps/
-│   └── dashboard/        # Next.js dashboard (coming soon)
-└── docker-compose.yml    # MinIO local development
+│   ├── dashboard/        # Next.js dashboard
+│   └── demo/             # Example app consuming the SDK
+└── docker-compose.yml    # MinIO + PostgreSQL local development
 ```
 
 ## Tech Stack
@@ -50,6 +52,28 @@ Core SDK with subpath exports:
 import { createUploadx, createRouteHandler } from "uploadx/server";
 import { uploadFiles } from "uploadx/client";
 import { createNextRouteHandler } from "uploadx/next";
+```
+
+### `@uploadx-sdk/cli`
+
+Manage apps, tokens and files from a terminal. The installed command is `uploadx`:
+
+```bash
+npm install -g @uploadx-sdk/cli
+
+uploadx login                 # device flow — approve in a browser
+uploadx init                  # wire up the current project
+uploadx files upload ./dist --recursive --prefix build/
+```
+
+Every read command takes `--json`. In CI, set `UPLOADX_TOKEN` to an app token
+instead of logging in.
+
+**Using it with a coding agent** — install the skill so Claude Code, Cursor and
+friends know the commands and the auth modes:
+
+```bash
+npx skills@latest add crafter-station/uploadx --skill=uploadx
 ```
 
 ### `@uploadx/react`

@@ -15,6 +15,19 @@ Or without installing:
 npx @uploadx-sdk/cli login
 ```
 
+## Using it with a coding agent
+
+There is an agent skill that teaches Claude Code, Cursor and friends how to drive
+this CLI — the commands, the two authentication modes, and the fact that `uploadx
+login` needs a human at a browser, so the agent asks you rather than hanging on a
+device code:
+
+```bash
+npx skills@latest add crafter-station/uploadx --skill=uploadx
+```
+
+Add `--global` to install it for every project instead of just the current one.
+
 ## Authentication
 
 `uploadx login` uses the OAuth 2.0 Device Authorization Grant: the CLI prints a code,

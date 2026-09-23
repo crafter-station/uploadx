@@ -65,6 +65,7 @@ const NAV = [
   { id: "hook", label: "useUploadX Hook" },
   { id: "server-api", label: "Server API" },
   { id: "http-api", label: "HTTP API" },
+  { id: "cli", label: "CLI" },
 ];
 
 // ── Full page as Markdown (used by the "Copy page" button) ──────────────────
@@ -321,6 +322,56 @@ The full reference — every endpoint, schema, and response, with a built-in req
 lives at [/docs/api](https://uploadx.crafter.run/docs/api). The OpenAPI document itself is served
 from [/api/openapi](https://uploadx.crafter.run/api/openapi) if you want to generate a client from
 it.
+
+## 10. Command Line Interface
+
+Everything in this dashboard can also be driven from a terminal. Install the CLI globally — the
+command is \`uploadx\`:
+
+\`\`\`bash
+npm install -g @uploadx-sdk/cli
+\`\`\`
+
+Or run it without installing:
+
+\`\`\`bash
+npx @uploadx-sdk/cli --help
+\`\`\`
+
+Sign in once per machine. The CLI prints a code, you approve it in a browser — the browser does
+not have to be on the same machine, so this works over SSH:
+
+\`\`\`bash
+uploadx login
+
+# Point a project at an app, then upload
+uploadx init
+uploadx files upload ./dist --recursive --prefix build/
+\`\`\`
+
+Day-to-day commands:
+
+\`\`\`bash
+uploadx apps list                        # every app in your org
+uploadx tokens create "CI" --output-env  # mint a token straight into .env.local
+uploadx files list --search logo --json  # --json on any read command
+uploadx files delete <key> --yes
+\`\`\`
+
+In CI there is no browser, so set \`UPLOADX_TOKEN\` to an app token instead — the same one the
+SDK uses. That covers the \`files\` commands.
+
+### Teaching a coding agent to use it
+
+If you work with Claude Code, Cursor or another agent, install the UploadX skill. It teaches the
+agent the commands, the two authentication modes, and the fact that \`uploadx login\` needs a
+human — so it asks you instead of hanging on a device code:
+
+\`\`\`bash
+npx skills@latest add crafter-station/uploadx --skill=uploadx
+\`\`\`
+
+Add \`--global\` to install it for every project rather than just the current one.
 `;
 
 // ── Copy the whole page as Markdown ─────────────────────────────────────────
@@ -755,6 +806,73 @@ curl -X DELETE https://uploadx.crafter.run/api/files \\
               <path d="m12 5 7 7-7 7" />
             </svg>
           </a>
+        </Section>
+
+        {/* ── 10. CLI ──────────────────────────────────────────────────── */}
+        <Section id="cli" title="10. Command Line Interface">
+          <p className="mb-2">
+            Everything in this dashboard can also be driven from a terminal. Install the CLI
+            globally — the command is{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              uploadx
+            </code>
+            :
+          </p>
+          <CodeBlock code="npm install -g @uploadx-sdk/cli" />
+          <p className="mb-2">Or run it without installing:</p>
+          <CodeBlock code="npx @uploadx-sdk/cli --help" />
+
+          <p className="mb-2 mt-4">
+            Sign in once per machine. The CLI prints a code, you approve it in a browser — the
+            browser does not have to be on the same machine, so this works over SSH:
+          </p>
+          <CodeBlock
+            code={`uploadx login
+
+# Point a project at an app, then upload
+uploadx init
+uploadx files upload ./dist --recursive --prefix build/`}
+          />
+
+          <p className="mb-2 mt-4">Day-to-day commands:</p>
+          <CodeBlock
+            code={`uploadx apps list                      # every app in your org
+uploadx tokens create "CI" --output-env  # mint a token straight into .env.local
+uploadx files list --search logo --json  # --json on any read command
+uploadx files delete <key> --yes`}
+          />
+
+          <p className="mt-3">
+            In CI there is no browser, so set{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              UPLOADX_TOKEN
+            </code>{" "}
+            to an app token instead — the same one the SDK uses. That covers the{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              files
+            </code>{" "}
+            commands.
+          </p>
+
+          <h3 className="mb-2 mt-6 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            Teaching a coding agent to use it
+          </h3>
+          <p className="mb-2">
+            If you work with Claude Code, Cursor or another agent, install the UploadX skill. It
+            teaches the agent the commands, the two authentication modes, and the fact that{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              uploadx login
+            </code>{" "}
+            needs a human — so it asks you instead of hanging on a device code:
+          </p>
+          <CodeBlock code="npx skills@latest add crafter-station/uploadx --skill=uploadx" />
+          <p className="mt-3">
+            Add{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+              --global
+            </code>{" "}
+            to install it for every project rather than just the current one.
+          </p>
         </Section>
       </div>
     </div>
