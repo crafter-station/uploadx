@@ -23,6 +23,22 @@ function clerkFrontendApiUrl(): string | null {
 }
 
 /**
+ * The origin a client actually reached us on.
+ *
+ * Behind a reverse proxy `request.url` carries the internal host, so the
+ * forwarded headers win when present. Both may be comma-separated lists.
+ */
+function publicOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const first = (value: string | null) => value?.split(",")[0]?.trim() || null;
+
+  const host = first(request.headers.get("x-forwarded-host")) ?? url.host;
+  const proto = first(request.headers.get("x-forwarded-proto")) ?? url.protocol.replace(":", "");
+
+  return `${proto}://${host}`;
+}
+
+/**
  * GET /api/cli/config
  *
  * Public discovery document for the CLI: tells it which Clerk instance to run the
@@ -34,7 +50,7 @@ export function GET(request: Request) {
   const oauthClientId = process.env.CLERK_CLI_OAUTH_CLIENT_ID ?? null;
 
   return NextResponse.json({
-    instanceUrl: new URL(request.url).origin,
+    instanceUrl: publicOrigin(request),
     clerkFapiUrl,
     oauthClientId,
     minCliVersion: MIN_CLI_VERSION,
