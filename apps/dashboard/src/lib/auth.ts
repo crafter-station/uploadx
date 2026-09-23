@@ -97,18 +97,24 @@ export async function listUserOrgs(
  *
  * Returns null for opaque tokens, or when the user approved without an org.
  */
-async function orgFromToken(authObject: {
+export async function tokenClaims(authObject: {
   getToken: () => Promise<string | null>;
-}): Promise<string | null> {
+}): Promise<Record<string, unknown> | null> {
   try {
     const raw = await authObject.getToken();
     const payload = raw?.split(".")[1];
     if (!payload) return null;
-    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return typeof claims.org_id === "string" ? claims.org_id : null;
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
   } catch {
     return null;
   }
+}
+
+async function orgFromToken(authObject: {
+  getToken: () => Promise<string | null>;
+}): Promise<string | null> {
+  const claims = await tokenClaims(authObject);
+  return typeof claims?.org_id === "string" ? claims.org_id : null;
 }
 
 /**

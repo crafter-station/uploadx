@@ -24,11 +24,21 @@ import {
   warn,
 } from "../lib/output.js";
 
+interface Org {
+  id: string;
+  slug: string | null;
+  name: string;
+}
+
 interface Me {
   userId: string;
   email: string | null;
   name: string | null;
-  orgs: Array<{ id: string; slug: string | null; name: string }>;
+  orgs: Org[];
+  /** The org carried in the token, present even when Clerk was unreachable. */
+  activeOrg?: string | null;
+  /** True when the instance answered from the token alone. */
+  degraded?: boolean;
 }
 
 export function registerAuthCommands(program: Command): void {
@@ -124,6 +134,9 @@ async function login(options: { profile?: string; url: string; org?: string }): 
   });
 
   debug("profile saved");
+  if (me.degraded) {
+    warn("The instance could not reach Clerk, so your name and org list are unavailable.");
+  }
   success(
     `Logged in as ${pc.bold(me.email ?? me.userId)} (${org.name}) — profile ${pc.bold(name)}`,
   );
@@ -139,11 +152,13 @@ async function fetchMe(url: string, accessToken: string): Promise<Me> {
   return (await response.json()) as Me;
 }
 
-async function chooseOrg(
-  me: Me,
-  requested: string | undefined,
-): Promise<{ id: string; slug: string | null; name: string }> {
+async function chooseOrg(me: Me, requested: string | undefined): Promise<Org> {
+  // When the instance could not reach Clerk it still tells us which org the
+  // token is for. That is enough to finish logging in; membership is verified
+  // server-side on every later request anyway.
   if (me.orgs.length === 0) {
+    if (requested) return { id: requested, slug: null, name: requested };
+    if (me.activeOrg) return { id: me.activeOrg, slug: null, name: me.activeOrg };
     throw new CliError(
       "Your account belongs to no organization. Create one in the dashboard first.",
     );
@@ -157,6 +172,9 @@ async function chooseOrg(
 
   const only = me.orgs[0];
   if (me.orgs.length === 1 && only) return only;
+
+  const active = me.activeOrg ? me.orgs.find((o) => o.id === me.activeOrg) : undefined;
+  if (active) return active;
 
   if (!isInteractive()) {
     throw new CliError("Several organizations available — choose one with --org <id|slug>");
@@ -223,6 +241,7 @@ async function whoami(options: { profile?: string; json?: boolean }): Promise<vo
   if (client.orgId) {
     const org = me.orgs.find((o) => o.id === client.orgId);
     info(`${pc.dim("org")}      ${org?.name ?? client.orgId}`);
+    if (me.degraded) info(pc.dim("         (names unavailable — instance could not reach Clerk)"));
   } else {
     info(`${pc.dim("auth")}     app token (UPLOADX_TOKEN)`);
   }

@@ -8,7 +8,10 @@ import { registerTokenCommands } from "./commands/tokens.js";
 import { ApiError, NotLoggedInError } from "./lib/api.js";
 import { CliError } from "./lib/output.js";
 
-const VERSION = "0.1.0";
+/** Replaced at build time with the version in package.json. */
+declare const __CLI_VERSION__: string;
+
+const VERSION = typeof __CLI_VERSION__ === "string" ? __CLI_VERSION__ : "0.0.0";
 
 const program = new Command();
 
