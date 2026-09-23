@@ -4,6 +4,7 @@ import * as prompts from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { createClient } from "../lib/api.js";
+import { httpFetch } from "../lib/http.js";
 import {
   CliError,
   formatBytes,
@@ -219,7 +220,7 @@ async function upload(
       const source = found[index];
       if (!source) return;
       const body = await readFile(source.absolute);
-      const response = await fetch(target.presignedUrl, { method: "PUT", body });
+      const response = await httpFetch(target.presignedUrl, { method: "PUT", body });
       if (!response.ok) {
         throw new CliError(`Upload failed for ${target.name} (${response.status})`);
       }

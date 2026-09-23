@@ -12,7 +12,17 @@ import {
   writeConfig,
 } from "../lib/config.js";
 import { pollForToken, requestDeviceCode, revokeToken } from "../lib/device-flow.js";
-import { CliError, info, isInteractive, printJson, success, table, warn } from "../lib/output.js";
+import { httpFetch } from "../lib/http.js";
+import {
+  CliError,
+  debug,
+  info,
+  isInteractive,
+  printJson,
+  success,
+  table,
+  warn,
+} from "../lib/output.js";
 
 interface Me {
   userId: string;
@@ -75,24 +85,32 @@ async function login(options: { profile?: string; url: string; org?: string }): 
   info(`  and enter the code ${pc.bold(device.userCode)}`);
   info("");
 
-  const spinner = prompts.spinner();
-  if (isInteractive()) spinner.start("Waiting for approval");
+  const interactive = isInteractive();
+  const spinner = interactive ? prompts.spinner() : null;
+  spinner?.start("Waiting for approval");
 
+  // The spinner owns the terminal until stopped, so every path out of the poll
+  // stops it exactly once — including the failure path, which must not claim
+  // the login was approved.
   let token: Awaited<ReturnType<typeof pollForToken>>;
   try {
     token = await pollForToken(instance.clerkFapiUrl, instance.oauthClientId, device);
+    spinner?.stop("Approved");
   } catch (error) {
-    if (isInteractive()) spinner.stop("Not approved");
+    spinner?.stop("Not approved");
     throw new CliError((error as Error).message);
   }
-  if (isInteractive()) spinner.stop("Approved");
 
   // Identity and org list come from the instance: Clerk advertises no userinfo
   // endpoint, and OAuth tokens carry no organization.
+  debug("fetching identity from /api/cli/me");
   const me = await fetchMe(options.url, token.accessToken);
+
+  debug(`choosing org from ${me.orgs.length} membership(s)`);
   const org = await chooseOrg(me, options.org);
 
   const name = options.profile ?? DEFAULT_PROFILE;
+  debug(`saving profile "${name}"`);
   await saveProfile(name, {
     url: options.url.replace(/\/$/, ""),
     auth: {
@@ -105,13 +123,14 @@ async function login(options: { profile?: string; url: string; org?: string }): 
     },
   });
 
+  debug("profile saved");
   success(
     `Logged in as ${pc.bold(me.email ?? me.userId)} (${org.name}) — profile ${pc.bold(name)}`,
   );
 }
 
 async function fetchMe(url: string, accessToken: string): Promise<Me> {
-  const response = await fetch(`${url.replace(/\/$/, "")}/api/cli/me`, {
+  const response = await httpFetch(`${url.replace(/\/$/, "")}/api/cli/me`, {
     headers: { authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) {

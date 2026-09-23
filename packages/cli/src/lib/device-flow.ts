@@ -2,6 +2,8 @@
  * OAuth 2.0 Device Authorization Grant (RFC 8628) against a Clerk instance.
  */
 
+import { httpFetch } from "./http.js";
+
 export const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 
 export const SCOPES = "openid profile email offline_access user:org:read";
@@ -84,7 +86,7 @@ export function interpretPollResponse(
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function postForm(url: string, body: Record<string, string>): Promise<TokenResponse> {
-  const response = await fetch(url, {
+  const response = await httpFetch(url, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(body).toString(),
@@ -96,7 +98,7 @@ async function postForm(url: string, body: Record<string, string>): Promise<Toke
  * Ask the instance for a device code the user can approve in a browser.
  */
 export async function requestDeviceCode(fapiUrl: string, clientId: string): Promise<DeviceCode> {
-  const response = await fetch(`${fapiUrl}/oauth/device_authorization`, {
+  const response = await httpFetch(`${fapiUrl}/oauth/device_authorization`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: clientId, scope: SCOPES }).toString(),
@@ -188,7 +190,7 @@ export async function revokeToken(
   token: string,
 ): Promise<boolean> {
   try {
-    const response = await fetch(`${fapiUrl}/oauth/token/revoke`, {
+    const response = await httpFetch(`${fapiUrl}/oauth/token/revoke`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ token, client_id: clientId }).toString(),

@@ -59,3 +59,10 @@ export function formatBytes(bytes: number): string {
   }
   return `${unit === 0 ? value : value.toFixed(1)}${units[unit]}`;
 }
+
+/** Trace to stderr when UPLOADX_DEBUG is set. Never prints secrets. */
+export function debug(message: string): void {
+  if (process.env.UPLOADX_DEBUG) {
+    process.stderr.write(`${pc.dim(`[uploadx] ${message}`)}\n`);
+  }
+}

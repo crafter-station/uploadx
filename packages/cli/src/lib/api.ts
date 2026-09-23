@@ -7,6 +7,7 @@ import {
   saveProfile,
 } from "./config.js";
 import { refreshTokens } from "./device-flow.js";
+import { httpFetch } from "./http.js";
 
 export class ApiError extends Error {
   constructor(
@@ -35,7 +36,7 @@ export interface InstanceConfig {
 
 /** Fetch an instance's public CLI discovery document. */
 export async function fetchInstanceConfig(url: string): Promise<InstanceConfig> {
-  const response = await fetch(`${url.replace(/\/$/, "")}/api/cli/config`);
+  const response = await httpFetch(`${url.replace(/\/$/, "")}/api/cli/config`);
   if (!response.ok) {
     throw new Error(`${url} does not look like an UploadX instance (${response.status})`);
   }
@@ -115,7 +116,7 @@ function makeClient(url: string, token: string, orgId: string | null): Client {
       if (orgId) headers["x-uploadx-org"] = orgId;
       if (body !== undefined) headers["content-type"] = "application/json";
 
-      const response = await fetch(`${base}${path}`, {
+      const response = await httpFetch(`${base}${path}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
