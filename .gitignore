@@ -17,5 +17,7 @@ Thumbs.db
 docker-compose.override.yml
 
 .claude/*
-# Skills are part of the project: agents working here should get them.
+# Track this project's own skills, not third-party ones installed locally.
 !.claude/skills/
+.claude/skills/*
+!.claude/skills/uploadx/
