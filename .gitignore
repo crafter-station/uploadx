@@ -16,4 +16,6 @@ Thumbs.db
 
 docker-compose.override.yml
 
-.claude/
+.claude/*
+# Skills are part of the project: agents working here should get them.
+!.claude/skills/

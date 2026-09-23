@@ -48,7 +48,12 @@ function report(error: unknown): number {
   if (error instanceof ApiError) {
     process.stderr.write(`${pc.red("✗")} ${error.message}\n`);
     if (error.status === 401) {
-      process.stderr.write(`  ${pc.dim("Try `uploadx login` again.")}\n`);
+      // Pointing an app-token caller at `login` would send them the wrong way:
+      // a bad UPLOADX_TOKEN is not fixed by authenticating a user.
+      const hint = process.env.UPLOADX_TOKEN
+        ? "Check UPLOADX_TOKEN — it belongs to one app and may have been revoked."
+        : "Try `uploadx login` again.";
+      process.stderr.write(`  ${pc.dim(hint)}\n`);
     }
     return 1;
   }
