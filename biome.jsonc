@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["node_modules", "dist", ".turbo", ".next", "coverage", ".claude"]
+    "ignore": ["node_modules", "dist", ".turbo", ".next", "coverage", ".claude", ".agents"]
   },
   "formatter": {
     "enabled": true,

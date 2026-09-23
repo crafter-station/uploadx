@@ -10,6 +10,7 @@ COPY apps/dashboard/package.json ./apps/dashboard/
 COPY apps/demo/package.json ./apps/demo/
 COPY packages/uploadx/package.json ./packages/uploadx/
 COPY packages/react/package.json ./packages/react/
+COPY packages/cli/package.json ./packages/cli/
 RUN bun install
 
 FROM base AS builder
