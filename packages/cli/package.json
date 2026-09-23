@@ -7,12 +7,12 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ignac/uploadx",
+    "url": "git+https://github.com/crafter-station/uploadx.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/Ignac/uploadx#readme",
+  "homepage": "https://github.com/crafter-station/uploadx#readme",
   "bugs": {
-    "url": "https://github.com/Ignac/uploadx/issues"
+    "url": "https://github.com/crafter-station/uploadx/issues"
   },
   "bin": {
     "uploadx": "./dist/index.js"
