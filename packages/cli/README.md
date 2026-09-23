@@ -1,10 +1,18 @@
-# uploadx
+# @uploadx-sdk/cli
 
-Manage [UploadX](https://github.com/Ignac/uploadx) apps, tokens and files from your terminal.
+Manage [UploadX](https://github.com/crafter-station/uploadx) apps, tokens and files from
+your terminal. The installed command is `uploadx`.
 
 ```bash
-npx uploadx login
-npx uploadx init
+npm install -g @uploadx-sdk/cli
+uploadx login
+uploadx init
+```
+
+Or without installing:
+
+```bash
+npx @uploadx-sdk/cli login
 ```
 
 ## Authentication
